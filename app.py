@@ -231,4 +231,4 @@ def api_yearly_stats():
 app.register_blueprint(bp, url_prefix=PREFIX)
 
 if __name__ == "__main__":
-    app.run(debug=True, port=3004)
+    app.run(debug=True, port=3005)
