@@ -1,0 +1,934 @@
+/* ══════════════════════════════════════
+   Game Selection Grid
+   ══════════════════════════════════════ */
+.game-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 12px;
+}
+.game-card {
+    background: white;
+    border: 2px solid var(--gray-200);
+    border-radius: 14px;
+    padding: 18px 12px;
+    cursor: pointer;
+    transition: all .2s;
+    text-align: center;
+}
+.game-card:hover {
+    border-color: var(--primary);
+    background: var(--primary-bg);
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(79,70,229,.15);
+}
+.game-icon { font-size: 2.2rem; margin-bottom: 8px; }
+.game-name { font-weight: 700; font-size: 0.95rem; color: var(--gray-900); }
+.game-desc { font-size: 0.75rem; color: var(--gray-500); margin-top: 4px; }
+
+/* ══════════════════════════════════════
+   Game Overlay
+   ══════════════════════════════════════ */
+.game-overlay {
+    position: fixed;
+    inset: 0;
+    background: var(--gray-50);
+    z-index: 100;
+    display: none;
+    flex-direction: column;
+    overflow-y: auto;
+}
+.game-overlay.active { display: flex; }
+
+.game-header {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    background: white;
+    border-bottom: 1px solid var(--gray-200);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+.game-back {
+    background: none;
+    border: none;
+    font-size: 1rem;
+    color: var(--primary);
+    font-weight: 600;
+    cursor: pointer;
+    padding: 8px 12px;
+}
+.game-title {
+    flex: 1;
+    text-align: center;
+    font-weight: 700;
+    font-size: 1.1rem;
+    padding-right: 80px;
+}
+
+.game-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    min-height: 0;
+}
+
+/* ══════════════════════════════════════
+   Result Overlay
+   ══════════════════════════════════════ */
+.result-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.7);
+    z-index: 200;
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+.result-overlay.active { display: flex; }
+
+#confettiCanvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.result-content {
+    background: white;
+    border-radius: 24px;
+    padding: 40px 48px;
+    text-align: center;
+    z-index: 1;
+    animation: resultPop .4s cubic-bezier(.2, .8, .2, 1.2);
+}
+@keyframes resultPop {
+    from { transform: scale(0.5); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+.result-emoji { font-size: 4rem; margin-bottom: 12px; }
+.result-announce {
+    font-size: 0.9rem;
+    color: var(--gray-500);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+}
+.result-winner {
+    font-size: 2.5rem;
+    font-weight: 900;
+    color: var(--primary);
+    margin-bottom: 8px;
+}
+.result-bet-info {
+    font-size: 1rem;
+    color: var(--gray-500);
+    margin-bottom: 24px;
+}
+.result-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+.result-close-btn,
+.result-retry-btn {
+    padding: 12px 36px;
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all .2s;
+}
+.result-close-btn {
+    background: var(--primary);
+    color: white;
+}
+.result-close-btn:hover { background: #4338CA; }
+.result-retry-btn {
+    background: white;
+    color: var(--primary);
+    border: 2px solid var(--primary);
+}
+.result-retry-btn:hover {
+    background: var(--primary-bg);
+}
+
+/* ══════════════════════════════════════
+   1. Ghost Leg (사다리)
+   ══════════════════════════════════════ */
+.ladder-game { width: 100%; max-width: 600px; text-align: center; }
+.ladder-players {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 12px;
+}
+.ladder-player {
+    padding: 8px 16px;
+    background: var(--primary-bg);
+    color: var(--primary);
+    border-radius: 20px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all .2s;
+}
+.ladder-player:hover, .ladder-player.selected {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: white;
+}
+/* Fixed-color labels: never change on hover/select */
+.ladder-player.ladder-player-fixed,
+.ladder-player.ladder-player-fixed:hover,
+.ladder-player.ladder-player-fixed.selected {
+    opacity: 1 !important;
+}
+.ladder-player.ladder-player-fixed:hover {
+    filter: brightness(1.1);
+}
+.ladder-player.ladder-player-fixed.selected {
+    filter: brightness(0.85);
+    box-shadow: 0 2px 8px rgba(0,0,0,.2);
+}
+.ladder-canvas {
+    width: 100%;
+    background: white;
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+}
+.ladder-results {
+    display: flex;
+    justify-content: space-around;
+    margin-top: 12px;
+}
+.ladder-result-item {
+    font-size: 0.8rem;
+    color: var(--gray-500);
+    font-weight: 600;
+}
+.ladder-start-btn {
+    margin-top: 16px;
+    padding: 14px 40px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+/* ══════════════════════════════════════
+   2. Lucky Wheel (돌림판)
+   ══════════════════════════════════════ */
+.wheel-game { text-align: center; }
+.wheel-wrapper {
+    position: relative;
+    display: inline-block;
+    margin: 20px 0;
+}
+.wheel-pointer {
+    position: absolute;
+    top: -18px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 2.5rem;
+    z-index: 5;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,.3));
+    transition: transform .05s;
+}
+.wheel-canvas {
+    border-radius: 50%;
+    box-shadow: 0 0 0 8px var(--primary), 0 0 0 12px white, 0 8px 30px rgba(0,0,0,.2);
+}
+.wheel-spin-btn {
+    margin-top: 20px;
+    padding: 16px 48px;
+    background: linear-gradient(135deg, #EF4444, #F97316);
+    color: white;
+    border: none;
+    border-radius: 50px;
+    font-size: 1.2rem;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(239,68,68,.4);
+    transition: transform .2s;
+}
+.wheel-spin-btn:hover { transform: scale(1.05); }
+.wheel-spin-btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+/* ══════════════════════════════════════
+   3. Bomb Pass (폭탄 돌리기)
+   ══════════════════════════════════════ */
+.bomb-game { text-align: center; width: 100%; max-width: 400px; }
+.bomb-display {
+    position: relative;
+    font-size: 8rem;
+    margin: 20px 0;
+    transition: transform .1s;
+}
+.bomb-display.shake {
+    animation: bombShake .1s infinite;
+}
+@keyframes bombShake {
+    0%, 100% { transform: translate(0); }
+    25% { transform: translate(-4px, 2px); }
+    50% { transform: translate(4px, -2px); }
+    75% { transform: translate(-2px, -4px); }
+}
+.bomb-fuse {
+    width: 200px;
+    height: 8px;
+    background: var(--gray-200);
+    border-radius: 4px;
+    margin: 0 auto 16px;
+    overflow: hidden;
+}
+.bomb-fuse-inner {
+    height: 100%;
+    background: linear-gradient(90deg, #EF4444, #F97316);
+    border-radius: 4px;
+    transition: width .3s;
+}
+.bomb-current-player {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--primary);
+    margin-bottom: 8px;
+}
+.bomb-turn-label {
+    font-size: 0.85rem;
+    color: var(--gray-500);
+    margin-bottom: 20px;
+}
+.bomb-pass-btn {
+    padding: 20px 60px;
+    background: linear-gradient(135deg, #EF4444, #DC2626);
+    color: white;
+    border: none;
+    border-radius: 50px;
+    font-size: 1.3rem;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(239,68,68,.4);
+    transition: transform .1s;
+}
+.bomb-pass-btn:hover { transform: scale(1.05); }
+.bomb-pass-btn:disabled { opacity: .5; cursor: not-allowed; }
+.bomb-start-btn {
+    padding: 14px 40px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+.bomb-explosion {
+    font-size: 10rem;
+    animation: explode .5s ease-out;
+}
+@keyframes explode {
+    0% { transform: scale(0.3); opacity: 0; }
+    50% { transform: scale(1.3); }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+/* ══════════════════════════════════════
+   4. Card Flip (카드 뒤집기)
+   ══════════════════════════════════════ */
+.card-game { text-align: center; width: 100%; max-width: 500px; }
+.card-game-info {
+    margin-bottom: 16px;
+    font-weight: 600;
+    color: var(--gray-500);
+}
+.card-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+    perspective: 1000px;
+    margin-bottom: 16px;
+}
+.flip-card {
+    aspect-ratio: 3/4;
+    cursor: pointer;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform .6s cubic-bezier(.4, 0, .2, 1);
+}
+.flip-card.flipped { transform: rotateY(180deg); }
+.flip-card.shuffling {
+    animation: cardShuffle .6s ease-in-out;
+}
+@keyframes cardShuffle {
+    0% { transform: translateX(0) rotateZ(0); }
+    25% { transform: translateX(20px) rotateZ(5deg); }
+    50% { transform: translateX(-20px) rotateZ(-5deg); }
+    75% { transform: translateX(10px) rotateZ(3deg); }
+    100% { transform: translateX(0) rotateZ(0); }
+}
+.flip-card-face {
+    position: absolute;
+    inset: 0;
+    border-radius: 10px;
+    backface-visibility: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    font-weight: 700;
+    box-shadow: var(--shadow);
+}
+.flip-card-back {
+    background: linear-gradient(135deg, var(--primary), var(--primary-light));
+    color: white;
+    font-size: 1.5rem;
+}
+.flip-card-front {
+    transform: rotateY(180deg);
+    background: white;
+}
+.flip-card-front.safe { background: #D1FAE5; color: #065F46; }
+.flip-card-front.fail { background: #FEE2E2; color: #991B1B; }
+.card-current-player {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: var(--primary);
+}
+
+/* ══════════════════════════════════════
+   5. Mystery Box (기프트 박스)
+   ══════════════════════════════════════ */
+.box-game { text-align: center; width: 100%; max-width: 500px; }
+.box-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin: 20px 0;
+}
+.mystery-box {
+    aspect-ratio: 1;
+    background: linear-gradient(135deg, #FCD34D, #F59E0B);
+    border-radius: 16px;
+    border: none;
+    cursor: pointer;
+    font-size: 3rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 15px rgba(245,158,11,.3);
+    transition: transform .2s;
+    animation: boxBounce 2s ease-in-out infinite;
+    position: relative;
+    overflow: hidden;
+}
+.mystery-box:nth-child(2) { animation-delay: .3s; }
+.mystery-box:nth-child(3) { animation-delay: .6s; }
+.mystery-box:nth-child(4) { animation-delay: .15s; }
+.mystery-box:nth-child(5) { animation-delay: .45s; }
+.mystery-box:nth-child(6) { animation-delay: .75s; }
+@keyframes boxBounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+}
+.mystery-box:hover {
+    transform: scale(1.1) !important;
+    animation: none;
+}
+.mystery-box.opened {
+    animation: boxOpen .5s ease-out forwards;
+    cursor: default;
+}
+@keyframes boxOpen {
+    0% { transform: scale(1); }
+    30% { transform: scale(1.2) rotateZ(-5deg); }
+    60% { transform: scale(0.9) rotateZ(3deg); }
+    100% { transform: scale(1) rotateZ(0); }
+}
+.mystery-box .sparkle {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+.box-game-info {
+    font-weight: 600;
+    color: var(--gray-500);
+    margin-bottom: 8px;
+}
+.box-current-player {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: var(--primary);
+}
+
+/* ══════════════════════════════════════
+   6. Pop-up Pirate (해적 통아저씨)
+   ══════════════════════════════════════ */
+.pirate-game { text-align: center; width: 100%; max-width: 400px; }
+.pirate-barrel {
+    position: relative;
+    width: 250px;
+    height: 300px;
+    margin: 20px auto;
+    background: linear-gradient(180deg, #92400E, #78350F);
+    border-radius: 30px 30px 20px 20px;
+    border: 4px solid #713F12;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 20px;
+    box-shadow: inset 0 0 30px rgba(0,0,0,.3), 0 8px 30px rgba(0,0,0,.2);
+}
+.pirate-barrel::before {
+    content: '';
+    position: absolute;
+    left: 10%; right: 10%; top: 25%;
+    height: 6px;
+    background: #D4A04A;
+    border-radius: 3px;
+}
+.pirate-barrel::after {
+    content: '';
+    position: absolute;
+    left: 10%; right: 10%; top: 65%;
+    height: 6px;
+    background: #D4A04A;
+    border-radius: 3px;
+}
+.pirate-hole {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #1a0a00, #3d1a00);
+    border: 2px solid #5B3A1A;
+    cursor: pointer;
+    transition: all .2s;
+    position: relative;
+    z-index: 2;
+}
+.pirate-hole:hover { transform: scale(1.15); background: radial-gradient(circle, #2a1000, #4d2a10); }
+.pirate-hole.stabbed {
+    cursor: default;
+}
+.pirate-hole.stabbed::after {
+    content: '🗡️';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1.4rem;
+}
+.pirate-character {
+    position: absolute;
+    font-size: 4rem;
+    top: -50px;
+    left: 50%;
+    transform: translateX(-50%);
+    transition: all .5s cubic-bezier(.2, .8, .2, 1.2);
+    z-index: 1;
+}
+.pirate-character.popped {
+    top: -200px;
+    animation: piratePop .6s ease-out;
+}
+@keyframes piratePop {
+    0% { top: -50px; transform: translateX(-50%) scale(1); }
+    50% { transform: translateX(-50%) scale(1.5) rotateZ(15deg); }
+    100% { top: -200px; transform: translateX(-50%) scale(1.2) rotateZ(-5deg); }
+}
+@keyframes dangerStab {
+    0% { transform: scale(1); }
+    30% { transform: scale(2.2) rotate(10deg); }
+    60% { transform: scale(1.6) rotate(-5deg); }
+    100% { transform: scale(1.8) rotate(0); }
+}
+@keyframes safeStab {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.15) rotate(3deg); }
+    100% { transform: scale(1) rotate(0); }
+}
+@keyframes barrelShake {
+    0%, 100% { transform: translate(0); }
+    15% { transform: translate(-6px, 3px) rotate(-2deg); }
+    30% { transform: translate(6px, -3px) rotate(2deg); }
+    45% { transform: translate(-4px, 2px) rotate(-1deg); }
+    60% { transform: translate(4px, -1px) rotate(1deg); }
+    80% { transform: translate(-2px, 1px); }
+}
+@keyframes screenFlash {
+    0% { opacity: 1; }
+    100% { opacity: 0; }
+}
+.pirate-hole.danger {
+    background: radial-gradient(circle, #FCA5A5, #EF4444) !important;
+    border-color: #EF4444 !important;
+}
+
+.pirate-info {
+    font-weight: 600;
+    color: var(--gray-500);
+    margin-bottom: 8px;
+}
+.pirate-current {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: var(--primary);
+}
+
+/* ══════════════════════════════════════
+   7. Racing Game (경마)
+   ══════════════════════════════════════ */
+.race-game { width: 100%; max-width: 600px; }
+.race-track {
+    background: white;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: var(--shadow);
+    margin-bottom: 16px;
+}
+.race-lane {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 0;
+    border-bottom: 2px dashed var(--gray-100);
+    position: relative;
+}
+.race-lane:last-child { border-bottom: none; }
+.race-name {
+    width: 60px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    text-align: right;
+    flex-shrink: 0;
+}
+.race-track-bg {
+    flex: 1;
+    height: 40px;
+    background: var(--gray-50);
+    border-radius: 8px;
+    position: relative;
+    overflow: hidden;
+}
+.race-runner {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1.8rem;
+    transition: left .15s ease-out;
+}
+.race-finish {
+    width: 4px;
+    height: 40px;
+    position: absolute;
+    right: 30px;
+    top: 0;
+    background: repeating-linear-gradient(180deg, #000 0, #000 4px, #fff 4px, #fff 8px);
+}
+.race-boost {
+    position: absolute;
+    height: 100%;
+    background: rgba(245,158,11,.15);
+    border-radius: 4px;
+}
+.race-boost::after {
+    content: '⚡';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 0.8rem;
+}
+.race-start-btn {
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, #10B981, #059669);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(16,185,129,.3);
+}
+.race-start-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+/* ══════════════════════════════════════
+   8. Slot Machine (슬롯머신)
+   ══════════════════════════════════════ */
+.slot-game { text-align: center; }
+.slot-machine {
+    background: linear-gradient(180deg, #7C3AED, #5B21B6);
+    border-radius: 20px;
+    padding: 32px 24px;
+    box-shadow: 0 8px 30px rgba(124,58,237,.3);
+    display: inline-block;
+    position: relative;
+}
+.slot-machine::before {
+    content: '🎰 SLOT MACHINE 🎰';
+    display: block;
+    color: #FDE68A;
+    font-weight: 800;
+    font-size: 0.9rem;
+    letter-spacing: 2px;
+    margin-bottom: 16px;
+}
+.slot-reels {
+    display: flex;
+    gap: 8px;
+    background: #1E1B4B;
+    padding: 12px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+}
+.slot-reel {
+    width: 90px;
+    height: 90px;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+}
+.slot-reel-inner {
+    position: absolute;
+    width: 100%;
+    transition: top 3s cubic-bezier(.1, 0, 0, 1);
+}
+.slot-item {
+    width: 90px;
+    height: 90px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+}
+.slot-pull-btn {
+    padding: 16px 48px;
+    background: linear-gradient(135deg, #EF4444, #DC2626);
+    color: white;
+    border: none;
+    border-radius: 50px;
+    font-size: 1.2rem;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(239,68,68,.4);
+}
+.slot-pull-btn:disabled { opacity: .5; cursor: not-allowed; }
+.slot-message {
+    color: #FDE68A;
+    font-weight: 700;
+    margin-top: 12px;
+    min-height: 1.5em;
+}
+
+/* ══════════════════════════════════════
+   9. Crocodile Dentist (악어 이빨)
+   ══════════════════════════════════════ */
+.croc-game { text-align: center; width: 100%; max-width: 400px; }
+
+/* ── 악어 입 전체 ── */
+.croc-mouth {
+    width: 320px;
+    margin: 0 auto 8px;
+    position: relative;
+}
+
+/* 윗턱 */
+.croc-jaw-upper {
+    position: relative;
+    z-index: 3;
+    transition: transform .4s cubic-bezier(.4,0,.2,1);
+    transform-origin: center bottom;
+}
+.croc-svg-upper { width: 100%; display: block; }
+.croc-angry-eyes {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 2.5rem;
+    z-index: 5;
+    animation: angryShake .4s ease-in-out 2;
+}
+@keyframes angryShake {
+    0%,100% { transform: translateX(-50%) rotate(0); }
+    25% { transform: translateX(-50%) rotate(-10deg); }
+    75% { transform: translateX(-50%) rotate(10deg); }
+}
+
+/* 입 안쪽 - 이빨이 여기 들어감 */
+.croc-mouth-inside {
+    background: linear-gradient(180deg, #7F1D1D, #991B1B);
+    border-left: 4px solid #15803D;
+    border-right: 4px solid #15803D;
+    padding: 12px 8px;
+    position: relative;
+    z-index: 1;
+    min-height: 80px;
+}
+
+/* 아랫턱 */
+.croc-jaw-lower {
+    position: relative;
+    z-index: 2;
+}
+.croc-svg-lower { width: 100%; display: block; }
+
+/* 입 닫힘 (당첨) */
+.croc-mouth.chomped .croc-jaw-upper {
+    animation: crocBite .4s cubic-bezier(.6,0,.4,1) forwards;
+}
+.croc-mouth.chomped .croc-mouth-inside {
+    animation: mouthShrink .4s ease forwards;
+    overflow: hidden;
+}
+@keyframes crocBite {
+    0% { transform: translateY(0); }
+    30% { transform: translateY(-15px); }
+    100% { transform: translateY(calc(100% - 10px)); }
+}
+@keyframes mouthShrink {
+    0% { padding-top: 12px; padding-bottom: 12px; min-height: 80px; }
+    100% { padding-top: 0; padding-bottom: 0; min-height: 0; max-height: 0; }
+}
+
+/* ── 이빨 버튼 (입 안에 배치) ── */
+.croc-teeth {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+}
+.croc-tooth {
+    width: 40px;
+    height: 46px;
+    cursor: pointer;
+    background: white;
+    border: 2px solid #D1D5DB;
+    border-radius: 8px 8px 14px 14px;
+    transition: all .2s;
+    position: relative;
+    box-shadow: 0 2px 4px rgba(0,0,0,.2), inset 0 -3px 5px rgba(0,0,0,.08);
+}
+.croc-tooth:hover:not(.pressed) {
+    transform: scale(1.15);
+    background: #FEF3C7;
+    border-color: #F59E0B;
+    z-index: 2;
+}
+.croc-tooth.pressed {
+    background: #7F1D1D;
+    border-color: #991B1B;
+    transform: scaleY(0.4);
+    cursor: default;
+    opacity: .6;
+    box-shadow: none;
+}
+.croc-tooth.danger {
+    background: #FCA5A5;
+    border-color: #EF4444;
+    box-shadow: 0 0 12px rgba(239,68,68,.6);
+    opacity: 1;
+    transform: scale(1.2);
+    z-index: 2;
+}
+.croc-info {
+    font-weight: 600;
+    color: var(--gray-500);
+    margin-bottom: 6px;
+}
+.croc-current {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: var(--primary);
+    margin-bottom: 12px;
+}
+
+/* ══════════════════════════════════════
+   10. Balloon Pop (풍선)
+   ══════════════════════════════════════ */
+.balloon-game { text-align: center; width: 100%; max-width: 400px; }
+.balloon-wrap {
+    position: relative;
+    height: 350px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.balloon-svg {
+    transition: transform .15s ease-out;
+    cursor: pointer;
+    filter: drop-shadow(0 8px 20px rgba(239,68,68,.3));
+}
+.balloon-svg:hover { filter: drop-shadow(0 8px 25px rgba(239,68,68,.5)); }
+.balloon-counter {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: var(--gray-700);
+    margin-top: 12px;
+}
+.balloon-pump-btn {
+    margin-top: 16px;
+    padding: 16px 48px;
+    background: linear-gradient(135deg, #EF4444, #F97316);
+    color: white;
+    border: none;
+    border-radius: 50px;
+    font-size: 1.1rem;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(239,68,68,.3);
+    transition: transform .1s;
+}
+.balloon-pump-btn:active { transform: scale(0.95); }
+.balloon-pop-text {
+    font-size: 5rem;
+    font-weight: 900;
+    color: #EF4444;
+    animation: popText .5s ease-out;
+}
+@keyframes popText {
+    0% { transform: scale(0); opacity: 0; }
+    50% { transform: scale(1.5); }
+    100% { transform: scale(1); opacity: 1; }
+}
+.balloon-current {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: var(--primary);
+    margin-bottom: 4px;
+}
+.balloon-info {
+    font-weight: 600;
+    color: var(--gray-500);
+    margin-bottom: 12px;
+}
+
+/* ══════════════════════════════════════
+   Responsive
+   ══════════════════════════════════════ */
+@media (max-width: 500px) {
+    .game-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .game-card { padding: 14px 8px; }
+    .game-icon { font-size: 1.8rem; }
+    .card-grid { grid-template-columns: repeat(5, 1fr); gap: 6px; }
+    .slot-reel { width: 70px; height: 70px; }
+    .slot-item { width: 70px; height: 70px; font-size: 2rem; }
+    .pirate-barrel { width: 200px; height: 240px; }
+    .pirate-hole { width: 32px; height: 32px; }
+}

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Bet - 오늘은 누가 쏠까?</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/static/games.css">
+</head>
+<body>
+<div class="container" id="mainApp">
+    <header>
+        <h1>Daily Bet</h1>
+        <p>오늘은 누가 쏠까?</p>
+    </header>
+
+    <!-- Tabs -->
+    <div class="tabs">
+        <button class="tab active" data-tab="draw">뽑기</button>
+        <button class="tab" data-tab="members">멤버</button>
+        <button class="tab" data-tab="stats">통계</button>
+        <button class="tab" data-tab="history">기록</button>
+    </div>
+
+    <!-- ════ Draw Panel ════ -->
+    <div id="draw" class="panel active">
+        <!-- Mode + Bet type selection -->
+        <div class="card">
+            <div class="mode-select">
+                <label class="mode-radio">
+                    <input type="radio" name="gameMode" value="practice" checked>
+                    <span class="mode-label mode-practice">연습</span>
+                </label>
+                <label class="mode-radio">
+                    <input type="radio" name="gameMode" value="real">
+                    <span class="mode-label mode-real">실전</span>
+                </label>
+            </div>
+            <h2>내기 종류</h2>
+            <div class="draw-select">
+                <button class="bet-chip active" data-bet="커피">커피</button>
+                <button class="bet-chip" data-bet="점심">점심</button>
+                <button class="bet-chip" data-bet="간식">간식</button>
+                <input type="text" class="bet-custom" placeholder="직접입력" maxlength="10" id="betCustom">
+            </div>
+        </div>
+
+        <!-- Game selection grid -->
+        <div class="card">
+            <h2>게임 선택</h2>
+            <div class="game-grid">
+                <button class="game-card" data-game="ladder">
+                    <div class="game-icon">🪜</div>
+                    <div class="game-name">사다리 타기</div>
+                    <div class="game-desc">운명의 사다리를 타고 내려가자</div>
+                </button>
+                <button class="game-card" data-game="wheel">
+                    <div class="game-icon">🎡</div>
+                    <div class="game-name">돌림판</div>
+                    <div class="game-desc">돌려돌려 럭키 휠</div>
+                </button>
+                <button class="game-card" data-game="bomb">
+                    <div class="game-icon">💣</div>
+                    <div class="game-name">폭탄 돌리기</div>
+                    <div class="game-desc">복불복 시한폭탄</div>
+                </button>
+                <button class="game-card" data-game="card">
+                    <div class="game-icon">🃏</div>
+                    <div class="game-name">카드 뒤집기</div>
+                    <div class="game-desc">죽음의 카드를 피해라</div>
+                </button>
+                <button class="game-card" data-game="box">
+                    <div class="game-icon">🎁</div>
+                    <div class="game-name">기프트 박스</div>
+                    <div class="game-desc">랜덤 미스터리 박스</div>
+                </button>
+                <button class="game-card" data-game="pirate">
+                    <div class="game-icon">🏴‍☠️</div>
+                    <div class="game-name">해적 통아저씨</div>
+                    <div class="game-desc">어디에 칼을 꽂을까</div>
+                </button>
+                <button class="game-card" data-game="race">
+                    <div class="game-icon">🏇</div>
+                    <div class="game-name">경마 레이스</div>
+                    <div class="game-desc">달려라 달려!</div>
+                </button>
+                <button class="game-card" data-game="slot">
+                    <div class="game-icon">🎰</div>
+                    <div class="game-name">슬롯머신</div>
+                    <div class="game-desc">인생은 한 방!</div>
+                </button>
+                <button class="game-card" data-game="croc">
+                    <div class="game-icon">🐊</div>
+                    <div class="game-name">악어 이빨</div>
+                    <div class="game-desc">조심조심 이빨 누르기</div>
+                </button>
+                <button class="game-card" data-game="balloon">
+                    <div class="game-icon">🎈</div>
+                    <div class="game-name">풍선 터뜨리기</div>
+                    <div class="game-desc">빵! 터지기 전에 멈춰</div>
+                </button>
+            </div>
+        </div>
+
+        <!-- Today's results -->
+        <div class="card" id="todayCard" style="display:none">
+            <h2>오늘의 결과</h2>
+            <div class="today-list" id="todayList"></div>
+        </div>
+    </div>
+
+    <!-- ════ Members Panel ════ -->
+    <div id="members" class="panel">
+        <div class="card">
+            <h2>멤버 관리</h2>
+            <form class="member-form" id="memberForm">
+                <input type="text" placeholder="이름 입력" id="memberName" maxlength="20" required>
+                <button type="submit">추가</button>
+            </form>
+            <div class="member-count" id="memberCount"></div>
+            <ul class="member-list" id="memberList"></ul>
+        </div>
+    </div>
+
+    <!-- ════ Stats Panel ════ -->
+    <div id="stats" class="panel">
+        <div class="card">
+            <h2>월별 통계</h2>
+            <div class="stats-nav">
+                <button id="prevMonth">&larr;</button>
+                <span class="period" id="statsPeriod"></span>
+                <button id="nextMonth">&rarr;</button>
+            </div>
+            <div id="statsContent"></div>
+        </div>
+    </div>
+
+    <!-- ════ History Panel ════ -->
+    <div id="history" class="panel">
+        <div class="card">
+            <h2>최근 기록</h2>
+            <div id="historyList"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ════ Game Overlay ════ -->
+<div class="game-overlay" id="gameOverlay">
+    <div class="game-header">
+        <button class="game-back" id="gameBack">&larr; 돌아가기</button>
+        <span class="game-title" id="gameTitle"></span>
+    </div>
+    <div class="game-container" id="gameContainer"></div>
+</div>
+
+<!-- ════ Result Overlay ════ -->
+<div class="result-overlay" id="resultOverlay">
+    <canvas id="confettiCanvas"></canvas>
+    <div class="result-content">
+        <div class="result-emoji" id="resultEmoji"></div>
+        <div class="result-announce" id="resultAnnounce">당첨자 발표!</div>
+        <div class="result-winner" id="resultWinner"></div>
+        <div class="result-bet-info" id="resultBetInfo"></div>
+        <div class="result-buttons">
+            <button class="result-close-btn" id="resultCloseBtn">확인</button>
+            <button class="result-retry-btn" id="resultRetryBtn">다시하기</button>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="/static/app.js"></script>
+<script src="/static/games.js"></script>
+</body>
+</html>
