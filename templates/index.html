@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Daily Bet - 오늘은 누가 쏠까?</title>
-    <link rel="stylesheet" href="/static/style.css">
-    <link rel="stylesheet" href="/static/games.css">
+    <link rel="stylesheet" href="{{ prefix }}/static/style.css">
+    <link rel="stylesheet" href="{{ prefix }}/static/games.css">
 </head>
 <body>
 <div class="container" id="mainApp">
@@ -170,7 +170,8 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="/static/app.js"></script>
-<script src="/static/games.js"></script>
+<script>const BASE_PATH = "{{ prefix }}";</script>
+<script src="{{ prefix }}/static/app.js"></script>
+<script src="{{ prefix }}/static/games.js"></script>
 </body>
 </html>

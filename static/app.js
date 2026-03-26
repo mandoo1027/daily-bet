@@ -7,9 +7,11 @@ statsYear = now.getFullYear();
 statsMonth = now.getMonth() + 1;
 
 // ── Helpers ──
+const API_PREFIX = (typeof BASE_PATH !== 'undefined') ? BASE_PATH : '';
+
 async function api(url, opts = {}) {
     if (opts.body) opts.headers = { 'Content-Type': 'application/json' };
-    const res = await fetch(url, opts);
+    const res = await fetch(API_PREFIX + url, opts);
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || '오류가 발생했습니다');
     return data;

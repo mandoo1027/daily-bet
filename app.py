@@ -5,10 +5,17 @@ import sqlite3
 import random
 from datetime import datetime, date
 from pathlib import Path
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, Blueprint, render_template, request, jsonify
 
-app = Flask(__name__)
+# URL prefix for nginx reverse proxy
+PREFIX = "/daily-bet"
+
+app = Flask(__name__,
+            static_url_path=f"{PREFIX}/static",
+            static_folder="static")
 DB_PATH = Path(__file__).parent / "daily_bet.db"
+
+bp = Blueprint("daily_bet", __name__, template_folder="templates")
 
 
 def get_db():
@@ -37,14 +44,14 @@ def get_db():
 
 # ── Pages ──
 
-@app.route("/")
+@bp.route("/")
 def index():
-    return render_template("index.html")
+    return render_template("index.html", prefix=PREFIX)
 
 
 # ── API: Members ──
 
-@app.route("/api/members", methods=["GET"])
+@bp.route("/api/members", methods=["GET"])
 def api_members():
     conn = get_db()
     rows = conn.execute(
@@ -54,7 +61,7 @@ def api_members():
     return jsonify([dict(r) for r in rows])
 
 
-@app.route("/api/members", methods=["POST"])
+@bp.route("/api/members", methods=["POST"])
 def api_add_member():
     data = request.get_json()
     name = data.get("name", "").strip()
@@ -82,7 +89,7 @@ def api_add_member():
     return jsonify({"message": f"'{name}' 추가 완료", "id": member_id}), 201
 
 
-@app.route("/api/members/<int:member_id>", methods=["DELETE"])
+@bp.route("/api/members/<int:member_id>", methods=["DELETE"])
 def api_remove_member(member_id):
     conn = get_db()
     cur = conn.execute(
@@ -97,7 +104,7 @@ def api_remove_member(member_id):
 
 # ── API: Draw ──
 
-@app.route("/api/draw", methods=["POST"])
+@bp.route("/api/draw", methods=["POST"])
 def api_draw():
     data = request.get_json() or {}
     bet_name = data.get("bet_name", "커피").strip() or "커피"
@@ -113,7 +120,6 @@ def api_draw():
         conn.close()
         return jsonify({"error": "최소 2명 이상의 참가자가 필요합니다"}), 400
 
-    # If winner specified by game, find that member; otherwise random
     if winner_name:
         chosen = next((m for m in members if m["name"] == winner_name), None)
         if not chosen:
@@ -136,7 +142,7 @@ def api_draw():
     })
 
 
-@app.route("/api/today", methods=["GET"])
+@bp.route("/api/today", methods=["GET"])
 def api_today():
     today = date.today().isoformat()
     conn = get_db()
@@ -152,7 +158,7 @@ def api_today():
 
 # ── API: History ──
 
-@app.route("/api/history", methods=["GET"])
+@bp.route("/api/history", methods=["GET"])
 def api_history():
     limit = request.args.get("limit", 30, type=int)
     conn = get_db()
@@ -166,7 +172,7 @@ def api_history():
     return jsonify([dict(r) for r in rows])
 
 
-@app.route("/api/history/<int:draw_id>", methods=["DELETE"])
+@bp.route("/api/history/<int:draw_id>", methods=["DELETE"])
 def api_delete_draw(draw_id):
     conn = get_db()
     cur = conn.execute("DELETE FROM draws WHERE id = ?", (draw_id,))
@@ -179,7 +185,7 @@ def api_delete_draw(draw_id):
 
 # ── API: Stats ──
 
-@app.route("/api/stats/monthly", methods=["GET"])
+@bp.route("/api/stats/monthly", methods=["GET"])
 def api_monthly_stats():
     year = request.args.get("year", datetime.now().year, type=int)
     month = request.args.get("month", datetime.now().month, type=int)
@@ -201,7 +207,7 @@ def api_monthly_stats():
     })
 
 
-@app.route("/api/stats/yearly", methods=["GET"])
+@bp.route("/api/stats/yearly", methods=["GET"])
 def api_yearly_stats():
     year = request.args.get("year", datetime.now().year, type=int)
 
@@ -222,5 +228,7 @@ def api_yearly_stats():
     })
 
 
+app.register_blueprint(bp, url_prefix=PREFIX)
+
 if __name__ == "__main__":
-    app.run(debug=True, port=8080)
+    app.run(debug=True, port=3004)
