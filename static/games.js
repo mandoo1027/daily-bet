@@ -1229,6 +1229,7 @@ Games.race = function(container, players, onWin) {
     startBtn.addEventListener('click', () => {
         startBtn.disabled = true;
         startBtn.textContent = '경주 중...';
+        if (typeof startRaceBgm === 'function') startRaceBgm();
 
         const finishedPlayers = [];
         const tripped = new Set();
@@ -1404,6 +1405,7 @@ Games.race = function(container, players, onWin) {
                     // 꼴찌가 당첨! (마지막 한 명 남으면 종료)
                     if (finishedPlayers.length === racePlayers.length - 1) {
                         clearInterval(interval);
+                        if (typeof stopRaceBgm === 'function') stopRaceBgm();
                         const lastIdx = racePlayers.findIndex((_, idx) => !finishedPlayers.includes(idx));
                         finishedPlayers.push(lastIdx);
                         const lastRunner = document.getElementById(`runner${lastIdx}`);

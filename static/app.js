@@ -721,5 +721,91 @@ function playSound(type) {
     } catch (e) {}
 }
 
+// 경마 BGM (긴장감 있는 드럼+베이스)
+let raceBgmCtx = null;
+let raceBgmNodes = [];
+function startRaceBgm() {
+    try {
+        stopRaceBgm();
+        raceBgmCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const tempo = 140;
+        const beat = 60 / tempo;
+
+        // 드럼 패턴 (루프)
+        function playDrum(time) {
+            // 킥
+            const kick = raceBgmCtx.createOscillator();
+            const kickGain = raceBgmCtx.createGain();
+            kick.connect(kickGain);
+            kickGain.connect(raceBgmCtx.destination);
+            kick.frequency.setValueAtTime(150, time);
+            kick.frequency.exponentialRampToValueAtTime(30, time + 0.1);
+            kickGain.gain.setValueAtTime(0.3, time);
+            kickGain.gain.exponentialRampToValueAtTime(0.001, time + 0.15);
+            kick.start(time);
+            kick.stop(time + 0.15);
+            raceBgmNodes.push(kick);
+
+            // 하이햇
+            const hh = raceBgmCtx.createOscillator();
+            const hhGain = raceBgmCtx.createGain();
+            const hhFilter = raceBgmCtx.createBiquadFilter();
+            hh.type = 'square';
+            hh.frequency.value = 5000;
+            hhFilter.type = 'highpass';
+            hhFilter.frequency.value = 7000;
+            hh.connect(hhFilter);
+            hhFilter.connect(hhGain);
+            hhGain.connect(raceBgmCtx.destination);
+            hhGain.gain.setValueAtTime(0.04, time + beat * 0.5);
+            hhGain.gain.exponentialRampToValueAtTime(0.001, time + beat * 0.5 + 0.05);
+            hh.start(time + beat * 0.5);
+            hh.stop(time + beat * 0.5 + 0.05);
+            raceBgmNodes.push(hh);
+        }
+
+        // 베이스라인 (긴장감)
+        function playBass(time, note) {
+            const bass = raceBgmCtx.createOscillator();
+            const bassGain = raceBgmCtx.createGain();
+            bass.type = 'sawtooth';
+            bass.frequency.value = note;
+            bass.connect(bassGain);
+            bassGain.connect(raceBgmCtx.destination);
+            bassGain.gain.setValueAtTime(0.08, time);
+            bassGain.gain.setValueAtTime(0.08, time + beat * 0.8);
+            bassGain.gain.exponentialRampToValueAtTime(0.001, time + beat);
+            bass.start(time);
+            bass.stop(time + beat);
+            raceBgmNodes.push(bass);
+        }
+
+        const bassNotes = [82, 82, 98, 82, 110, 82, 98, 73]; // E2 패턴
+        let loopCount = 0;
+        function scheduleLoop() {
+            if (!raceBgmCtx) return;
+            const now = raceBgmCtx.currentTime;
+            for (let i = 0; i < 8; i++) {
+                const t = now + i * beat;
+                playDrum(t);
+                playBass(t, bassNotes[i % bassNotes.length]);
+            }
+            loopCount++;
+            if (loopCount < 30) { // 최대 30루프 (~100초)
+                setTimeout(scheduleLoop, beat * 8 * 1000 - 50);
+            }
+        }
+        scheduleLoop();
+    } catch (e) {}
+}
+
+function stopRaceBgm() {
+    try {
+        raceBgmNodes.forEach(n => { try { n.stop(); } catch(e){} });
+        raceBgmNodes = [];
+        if (raceBgmCtx) { raceBgmCtx.close(); raceBgmCtx = null; }
+    } catch (e) {}
+}
+
 // ── Init ──
 loadToday();
