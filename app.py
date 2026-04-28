@@ -49,6 +49,13 @@ def index():
     return render_template("index.html", prefix=PREFIX)
 
 
+@bp.route("/<path:path>")
+def catch_all(path):
+    if path.startswith("api/") or path.startswith("static/"):
+        return "", 404
+    return render_template("index.html", prefix=PREFIX)
+
+
 # ── API: Members ──
 
 @bp.route("/api/members", methods=["GET"])
@@ -226,6 +233,15 @@ def api_yearly_stats():
         "year": year,
         "data": [dict(r) for r in rows]
     })
+
+
+@bp.route("/api/stats/reset", methods=["DELETE"])
+def api_reset_stats():
+    conn = get_db()
+    conn.execute("DELETE FROM draws")
+    conn.commit()
+    conn.close()
+    return jsonify({"ok": True, "message": "All draw history deleted"})
 
 
 app.register_blueprint(bp, url_prefix=PREFIX)

@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Daily Bet - 오늘은 누가 쏠까?</title>
-    <link rel="stylesheet" href="{{ prefix }}/static/style.css">
-    <link rel="stylesheet" href="{{ prefix }}/static/games.css">
+    <link rel="stylesheet" href="{{ prefix }}/static/style.css?v=2">
+    <link rel="stylesheet" href="{{ prefix }}/static/games.css?v=2">
 </head>
 <body>
 <div class="container" id="mainApp">
@@ -84,12 +84,7 @@
                     <div class="game-name">경마 레이스</div>
                     <div class="game-desc">달려라 달려!</div>
                 </button>
-                <button class="game-card" data-game="slot">
-                    <div class="game-icon">🎰</div>
-                    <div class="game-name">슬롯머신</div>
-                    <div class="game-desc">인생은 한 방!</div>
-                </button>
-                <button class="game-card" data-game="croc">
+<button class="game-card" data-game="croc">
                     <div class="game-icon">🐊</div>
                     <div class="game-name">악어 이빨</div>
                     <div class="game-desc">조심조심 이빨 누르기</div>
@@ -98,6 +93,16 @@
                     <div class="game-icon">🎈</div>
                     <div class="game-name">풍선 터뜨리기</div>
                     <div class="game-desc">빵! 터지기 전에 멈춰</div>
+                </button>
+                <button class="game-card" data-game="dice">
+                    <div class="game-icon">🎲</div>
+                    <div class="game-name">주사위</div>
+                    <div class="game-desc">높은 숫자가 당첨!</div>
+                </button>
+                <button class="game-card game-card-random" data-game="random">
+                    <div class="game-icon">❓</div>
+                    <div class="game-name">랜덤</div>
+                    <div class="game-desc">어떤 게임이 나올까?</div>
                 </button>
             </div>
         </div>
@@ -132,6 +137,11 @@
                 <button id="nextMonth">&rarr;</button>
             </div>
             <div id="statsContent"></div>
+            <div style="margin-top:24px; padding-top:16px; border-top:1px solid rgba(255,255,255,0.08); text-align:right;">
+                <button onclick="resetStats()" style="padding:8px 18px; border-radius:8px; background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.3); color:#ef4444; font-size:13px; font-weight:600; cursor:pointer; transition:all 0.2s;">
+                    통계 초기화
+                </button>
+            </div>
         </div>
     </div>
 
@@ -151,6 +161,9 @@
         <span class="game-title" id="gameTitle"></span>
     </div>
     <div class="game-container" id="gameContainer"></div>
+    <div class="game-footer" id="gameFooter" style="display:none;">
+        <button class="game-retry-btn" id="gameRetryBtn">🔄 다시하기</button>
+    </div>
 </div>
 
 <!-- ════ Result Overlay ════ -->
@@ -168,10 +181,11 @@
     </div>
 </div>
 
+<div class="game-setup-overlay" id="gameSetupOverlay"></div>
 <div class="toast" id="toast"></div>
 
 <script>const BASE_PATH = "{{ prefix }}";</script>
-<script src="{{ prefix }}/static/app.js"></script>
-<script src="{{ prefix }}/static/games.js"></script>
+<script src="{{ prefix }}/static/app.js?v=2"></script>
+<script src="{{ prefix }}/static/games.js?v=2"></script>
 </body>
 </html>

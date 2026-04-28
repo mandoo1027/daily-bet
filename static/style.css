@@ -512,9 +512,181 @@ header p {
 }
 
 /* ── Responsive ── */
+.game-footer {
+    display: flex;
+    justify-content: center;
+    padding: 16px;
+}
+.game-retry-btn {
+    padding: 12px 32px;
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.game-retry-btn:hover { background: var(--primary-light); transform: translateY(-2px); }
+.game-retry-btn:active { transform: translateY(0); }
+
+.game-card-random {
+    background: linear-gradient(135deg, #EEF2FF, #E0E7FF);
+    border: 2px dashed var(--primary);
+}
+.game-card-random:hover {
+    border-style: solid;
+    background: linear-gradient(135deg, #E0E7FF, #C7D2FE);
+}
+
 @media (max-width: 500px) {
     .container { padding: 12px; }
     header h1 { font-size: 1.4rem; }
     .draw-btn { width: 130px; height: 130px; font-size: 1.1rem; }
     .stat-row .name { width: 55px; font-size: 0.9rem; }
+}
+
+/* ── Game Setup Overlay ── */
+.game-setup-overlay {
+    position: fixed; inset: 0; z-index: 1000;
+    background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);
+    display: none; justify-content: center; align-items: center;
+    padding: 16px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+.game-setup-overlay.active { display: flex; }
+
+.setup-container {
+    background: #fff; border-radius: 20px; width: 100%; max-width: 420px;
+    padding: 32px 24px; position: relative;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+    animation: slideUp 0.3s ease-out;
+    max-height: 90vh;
+    overflow-y: auto;
+    margin: auto;
+}
+.setup-close {
+    position: absolute; top: 12px; right: 16px;
+    background: none; border: none; font-size: 1.5rem; color: var(--gray-400);
+    cursor: pointer; line-height: 1;
+}
+.setup-close:hover { color: var(--gray-600); }
+
+.setup-step { display: none; }
+.setup-step.active { display: block; }
+
+.setup-game-title {
+    text-align: center; font-size: 1.3rem; font-weight: 700;
+    margin-bottom: 20px; color: var(--gray-800);
+}
+.setup-heading {
+    text-align: center; font-size: 1rem; font-weight: 600;
+    color: var(--gray-500); margin-bottom: 16px;
+}
+.setup-heading-sm {
+    font-size: 0.85rem; font-weight: 600; color: var(--gray-500);
+    margin-bottom: 8px;
+}
+
+/* Mode buttons */
+.setup-mode-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+}
+.setup-mode-btn {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    padding: 20px 12px; border: 2px solid var(--gray-200); border-radius: 16px;
+    background: #fff; cursor: pointer; transition: all 0.2s;
+}
+.setup-mode-btn:hover { border-color: var(--primary); background: #F5F3FF; }
+.setup-mode-btn:active { transform: scale(0.97); }
+.setup-mode-icon { font-size: 2rem; }
+.setup-mode-label { font-size: 1.1rem; font-weight: 700; color: var(--gray-800); }
+.setup-mode-desc { font-size: 0.75rem; color: var(--gray-400); }
+
+/* Member input */
+.setup-member-input {
+    display: flex; gap: 8px; margin-bottom: 12px;
+}
+.setup-member-input input {
+    flex: 1; padding: 10px 14px; border: 2px solid var(--gray-200);
+    border-radius: 10px; font-size: 0.9rem; outline: none;
+    transition: border-color 0.2s;
+}
+.setup-member-input input:focus { border-color: var(--primary); }
+.setup-add-btn {
+    padding: 10px 16px; background: var(--primary); color: #fff;
+    border: none; border-radius: 10px; font-weight: 600; cursor: pointer;
+    font-size: 0.9rem;
+}
+.setup-add-btn:hover { background: var(--primary-light); }
+
+/* Member tags */
+.setup-member-list {
+    display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; min-height: 20px;
+}
+.setup-member-tag {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: var(--primary); color: #fff; padding: 6px 12px;
+    border-radius: 20px; font-size: 0.85rem; font-weight: 500;
+    animation: slideUp 0.2s ease-out;
+}
+.setup-member-remove {
+    background: none; border: none; color: rgba(255,255,255,0.7);
+    cursor: pointer; font-size: 1rem; line-height: 1; padding: 0 2px;
+}
+.setup-member-remove:hover { color: #fff; }
+
+/* Saved members */
+.setup-saved-members { margin-bottom: 20px; }
+.setup-saved-title {
+    font-size: 0.8rem; color: var(--gray-400); margin-bottom: 8px;
+}
+.setup-saved-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.setup-saved-chip {
+    padding: 6px 12px; border: 1px solid var(--gray-200); border-radius: 20px;
+    background: #fff; color: var(--gray-600); font-size: 0.8rem;
+    cursor: pointer; transition: all 0.2s;
+}
+.setup-saved-chip:hover { border-color: var(--primary); color: var(--primary); background: #F5F3FF; }
+.setup-all-chip { border-color: var(--primary); color: var(--primary); font-weight: 600; }
+
+/* Bet chips in setup */
+.setup-bet-section { margin-bottom: 20px; }
+.setup-bet-chips { display: flex; gap: 8px; }
+.setup-bet-chip {
+    padding: 8px 14px; border: 2px solid var(--gray-200); border-radius: 10px;
+    background: #fff; color: var(--gray-600); font-size: 0.85rem;
+    cursor: pointer; transition: all 0.2s; font-weight: 500;
+}
+.setup-bet-chip.active { border-color: var(--primary); color: var(--primary); background: #F5F3FF; }
+.setup-bet-chip:hover { border-color: var(--primary); }
+
+/* Start button */
+.setup-start-btn {
+    width: 100%; padding: 14px; background: var(--primary); color: #fff;
+    border: none; border-radius: 12px; font-size: 1rem; font-weight: 700;
+    cursor: pointer; transition: all 0.2s;
+}
+.setup-start-btn:hover:not(:disabled) { background: var(--primary-light); }
+.setup-start-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.setup-start-btn:active:not(:disabled) { transform: scale(0.98); }
+
+/* Setup mobile */
+@media (max-width: 500px) {
+    .game-setup-overlay { padding: 8px; align-items: flex-start; padding-top: 40px; }
+    .setup-container { padding: 24px 16px; border-radius: 16px; max-height: 85vh; }
+    .setup-game-title { font-size: 1.1rem; margin-bottom: 14px; }
+    .setup-heading { font-size: 0.9rem; margin-bottom: 12px; }
+    .setup-mode-grid { gap: 8px; }
+    .setup-mode-btn { padding: 16px 10px; border-radius: 12px; }
+    .setup-mode-icon { font-size: 1.6rem; }
+    .setup-mode-label { font-size: 1rem; }
+    .setup-member-input input { padding: 12px; font-size: 16px; }
+    .setup-add-btn { padding: 12px 14px; font-size: 0.85rem; }
+    .setup-bet-chips { flex-wrap: wrap; }
+    .setup-bet-chip { padding: 8px 12px; font-size: 0.8rem; }
+    .setup-start-btn { padding: 16px; font-size: 1rem; }
+    .setup-saved-chip { padding: 8px 12px; font-size: 0.8rem; }
 }

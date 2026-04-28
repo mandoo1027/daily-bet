@@ -436,6 +436,9 @@
 .mystery-box:nth-child(4) { animation-delay: .15s; }
 .mystery-box:nth-child(5) { animation-delay: .45s; }
 .mystery-box:nth-child(6) { animation-delay: .75s; }
+.mystery-box:nth-child(7) { animation-delay: .2s; }
+.mystery-box:nth-child(8) { animation-delay: .5s; }
+.mystery-box:nth-child(9) { animation-delay: .8s; }
 @keyframes boxBounce {
     0%, 100% { transform: translateY(0); }
     50% { transform: translateY(-8px); }
@@ -474,11 +477,11 @@
 /* ══════════════════════════════════════
    6. Pop-up Pirate (해적 통아저씨)
    ══════════════════════════════════════ */
-.pirate-game { text-align: center; width: 100%; max-width: 400px; }
+.pirate-game { text-align: center; width: 100%; max-width: 500px; }
 .pirate-barrel {
     position: relative;
-    width: 250px;
-    height: 300px;
+    width: 340px;
+    height: 400px;
     margin: 20px auto;
     background: linear-gradient(180deg, #92400E, #78350F);
     border-radius: 30px 30px 20px 20px;
@@ -508,8 +511,8 @@
     border-radius: 3px;
 }
 .pirate-hole {
-    width: 40px;
-    height: 40px;
+    width: 52px;
+    height: 52px;
     border-radius: 50%;
     background: radial-gradient(circle, #1a0a00, #3d1a00);
     border: 2px solid #5B3A1A;
@@ -579,12 +582,13 @@
 .pirate-info {
     font-weight: 600;
     color: var(--gray-500);
-    margin-bottom: 8px;
+    margin-bottom: 20px;
 }
 .pirate-current {
     font-size: 1.3rem;
     font-weight: 800;
     color: var(--primary);
+    margin-bottom: 4px;
 }
 
 /* ══════════════════════════════════════
@@ -929,6 +933,6 @@
     .card-grid { grid-template-columns: repeat(5, 1fr); gap: 6px; }
     .slot-reel { width: 70px; height: 70px; }
     .slot-item { width: 70px; height: 70px; font-size: 2rem; }
-    .pirate-barrel { width: 200px; height: 240px; }
-    .pirate-hole { width: 32px; height: 32px; }
+    .pirate-barrel { width: 280px; height: 340px; }
+    .pirate-hole { width: 44px; height: 44px; }
 }

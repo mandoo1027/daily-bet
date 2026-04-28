@@ -456,6 +456,215 @@ Games.ladder = function(container, players, onWin) {
 // 2. Lucky Wheel (돌림판)
 // ─────────────────────────────────────
 Games.wheel = function(container, players, onWin) {
+    // 모드 선택 화면
+    container.innerHTML = `
+        <div style="text-align:center;padding:40px 20px;max-width:400px;margin:0 auto;">
+            <h3 style="font-size:1.3rem;font-weight:700;color:#4F46E5;margin-bottom:24px;">🎡 돌림판 모드 선택</h3>
+            <div style="display:flex;gap:12px;justify-content:center;">
+                <button id="wheelNormal" style="
+                    flex:1;padding:24px 16px;background:#fff;border:2px solid #E2E8F0;border-radius:16px;
+                    cursor:pointer;transition:all 0.2s;text-align:center;
+                ">
+                    <div style="font-size:2rem;margin-bottom:8px;">🎯</div>
+                    <div style="font-size:1rem;font-weight:700;color:#1E293B;">클래식</div>
+                    <div style="font-size:0.75rem;color:#94A3B8;margin-top:4px;">참가자 수만큼 동일 칸</div>
+                </button>
+                <button id="wheelClassic" style="
+                    flex:1;padding:24px 16px;background:#fff;border:2px solid #E2E8F0;border-radius:16px;
+                    cursor:pointer;transition:all 0.2s;text-align:center;
+                ">
+                    <div style="font-size:2rem;margin-bottom:8px;">🎰</div>
+                    <div style="font-size:1rem;font-weight:700;color:#1E293B;">다이나믹</div>
+                    <div style="font-size:0.75rem;color:#94A3B8;margin-top:4px;">20칸 랜덤 비율 배정</div>
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('wheelNormal').addEventListener('click', () => {
+        container.innerHTML = '';
+        wheelNormal(container, players, onWin);
+    });
+    document.getElementById('wheelClassic').addEventListener('click', () => {
+        container.innerHTML = '';
+        wheelClassic(container, players, onWin);
+    });
+};
+
+// 다이나믹 모드 - 20칸 랜덤 비율 배정
+function wheelClassic(container, players, onWin) {
+    const totalSlots = 20;
+    const n = players.length;
+    const size = Math.min(320, window.innerWidth - 80);
+
+    // 랜덤 비율로 칸 배정
+    const slots = [];
+    const counts = new Array(n).fill(0);
+
+    // 최소 1칸씩 보장
+    for (let i = 0; i < n; i++) {
+        counts[i] = 1;
+    }
+    // 나머지 칸 랜덤 배정
+    let remaining = totalSlots - n;
+    while (remaining > 0) {
+        const randPlayer = Math.floor(Math.random() * n);
+        counts[randPlayer]++;
+        remaining--;
+    }
+
+    // 슬롯 배열 생성 (연속되지 않도록 분산 배치)
+    const playerSlots = [];
+    for (let i = 0; i < n; i++) {
+        for (let j = 0; j < counts[i]; j++) {
+            playerSlots.push(i);
+        }
+    }
+    // 셔플
+    for (let i = playerSlots.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [playerSlots[i], playerSlots[j]] = [playerSlots[j], playerSlots[i]];
+    }
+
+    const div = document.createElement('div');
+    div.className = 'wheel-game';
+
+    // 비율 표시
+    const ratioDiv = document.createElement('div');
+    ratioDiv.style.cssText = 'text-align:center;margin-bottom:12px;';
+    ratioDiv.innerHTML = players.map((p, i) => {
+        const pct = Math.round(counts[i] / totalSlots * 100);
+        return `<span style="display:inline-block;margin:3px 6px;padding:4px 10px;border-radius:8px;font-size:0.8rem;font-weight:600;background:${['#EF4444','#F59E0B','#10B981','#3B82F6','#8B5CF6','#EC4899','#14B8A6','#F97316','#6366F1','#06B6D4'][i % 10]}20;color:${['#EF4444','#F59E0B','#10B981','#3B82F6','#8B5CF6','#EC4899','#14B8A6','#F97316','#6366F1','#06B6D4'][i % 10]};">${p}: ${counts[i]}칸 (${pct}%)</span>`;
+    }).join('');
+    div.appendChild(ratioDiv);
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'wheel-wrapper';
+
+    const pointer = document.createElement('div');
+    pointer.className = 'wheel-pointer';
+    pointer.textContent = '▼';
+    wrapper.appendChild(pointer);
+
+    const canvas = document.createElement('canvas');
+    canvas.className = 'wheel-canvas';
+    canvas.width = size;
+    canvas.height = size;
+    wrapper.appendChild(canvas);
+    div.appendChild(wrapper);
+
+    const spinBtn = document.createElement('button');
+    spinBtn.className = 'wheel-spin-btn';
+    spinBtn.textContent = '돌리기!';
+    div.appendChild(spinBtn);
+
+    container.appendChild(div);
+
+    const ctx = canvas.getContext('2d');
+    const cx = size / 2, cy = size / 2, radius = size / 2 - 4;
+    const sliceAngle = (Math.PI * 2) / totalSlots;
+
+    const colors = ['#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#8B5CF6',
+                   '#EC4899', '#14B8A6', '#F97316', '#6366F1', '#06B6D4',
+                   '#84CC16', '#A855F7'];
+
+    let currentRotation = 0;
+
+    function drawWheel(rotation) {
+        ctx.clearRect(0, 0, size, size);
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(rotation);
+
+        for (let i = 0; i < totalSlots; i++) {
+            const start = i * sliceAngle;
+            const end = start + sliceAngle;
+            const playerIdx = playerSlots[i];
+
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.arc(0, 0, radius, start, end);
+            ctx.closePath();
+            ctx.fillStyle = colors[playerIdx % colors.length];
+            ctx.fill();
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            // 이름 (간격이 좁으니 짧게)
+            ctx.save();
+            ctx.rotate(start + sliceAngle / 2);
+            ctx.textAlign = 'center';
+            ctx.fillStyle = 'white';
+            ctx.font = `bold ${Math.min(10, 140 / totalSlots)}px sans-serif`;
+            ctx.shadowColor = 'rgba(0,0,0,.3)';
+            ctx.shadowBlur = 2;
+            const name = players[playerIdx].length > 3 ? players[playerIdx].substring(0, 3) : players[playerIdx];
+            ctx.fillText(name, radius * 0.7, 3);
+            ctx.shadowBlur = 0;
+            ctx.restore();
+        }
+
+        ctx.beginPath();
+        ctx.arc(0, 0, 20, 0, Math.PI * 2);
+        ctx.fillStyle = 'white';
+        ctx.fill();
+        ctx.strokeStyle = '#ddd';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.restore();
+    }
+
+    drawWheel(0);
+
+    function getWinnerFromRotation(rot) {
+        let pointerAngle = (-Math.PI / 2 - rot) % (Math.PI * 2);
+        if (pointerAngle < 0) pointerAngle += Math.PI * 2;
+        const idx = Math.floor(pointerAngle / sliceAngle) % totalSlots;
+        return playerSlots[idx];
+    }
+
+    spinBtn.addEventListener('click', () => {
+        spinBtn.disabled = true;
+        const extraAngle = Math.random() * Math.PI * 2;
+        const spins = 5 + Math.random() * 3;
+        const totalRotation = spins * Math.PI * 2 + extraAngle;
+        const duration = 5000;
+        const startTime = performance.now();
+        const startRot = currentRotation;
+        let lastTickSlice = -1;
+
+        function animate(now) {
+            const elapsed = now - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            const ease = 1 - Math.pow(1 - progress, 3);
+            const rot = startRot + totalRotation * ease;
+            drawWheel(rot);
+
+            const currentSlice = getWinnerFromRotation(rot);
+            if (currentSlice !== lastTickSlice && progress > 0.1) {
+                playSound('tick');
+                pointer.style.transform = 'translateX(-50%) scale(1.2)';
+                setTimeout(() => { pointer.style.transform = 'translateX(-50%)'; }, 50);
+            }
+            lastTickSlice = currentSlice;
+
+            if (progress < 1) {
+                requestAnimationFrame(animate);
+            } else {
+                currentRotation = rot;
+                const winnerIdx = getWinnerFromRotation(rot);
+                playSound('win');
+                setTimeout(() => onWin(players[winnerIdx]), 800);
+            }
+        }
+        requestAnimationFrame(animate);
+    });
+}
+
+// 클래식 모드 - 동일 칸
+function wheelNormal(container, players, onWin) {
     const n = players.length;
     const size = Math.min(320, window.innerWidth - 80);
 
@@ -767,7 +976,7 @@ Games.box = function(container, players, onWin) {
     const div = document.createElement('div');
     div.className = 'box-game';
 
-    const totalBoxes = Math.max(6, players.length);
+    const totalBoxes = Math.max(9, players.length);
     const failIdx = Math.floor(Math.random() * totalBoxes);
     let currentPlayer = 0;
     let gameOver = false;
@@ -940,7 +1149,7 @@ Games.race = function(container, players, onWin) {
     const div = document.createElement('div');
     div.className = 'race-game';
 
-    const icons = ['🏇', '🐎', '🦄', '🐴', '🏃', '🐕', '🐈', '🐢', '🐇', '🦊'];
+    const icons = ['🐂', '🐎', '🐷', '🐢', '🐵', '🐔', '🐑', '🐰', '🐍', '🐲', '🐕', '🐈', '🐘', '🦊', '🐻', '🦁', '🐧'];
     const boostZone = 0.5 + Math.random() * 0.2; // 50-70% area
 
     let trackHTML = '<div class="race-track">';
@@ -971,9 +1180,9 @@ Games.race = function(container, players, onWin) {
         startBtn.disabled = true;
         startBtn.textContent = '경주 중...';
 
-        const interval = setInterval(() => {
-            let finished = false;
+        const finishedPlayers = [];
 
+        const interval = setInterval(() => {
             for (let i = 0; i < players.length; i++) {
                 if (positions[i] >= maxPos) continue;
 
@@ -996,14 +1205,18 @@ Games.race = function(container, players, onWin) {
                 const runner = document.getElementById(`runner${i}`);
                 runner.style.left = positions[i] + '%';
 
-                if (positions[i] >= maxPos) {
-                    finished = true;
-                    clearInterval(interval);
-                    playSound('win');
+                if (positions[i] >= maxPos && !finishedPlayers.includes(i)) {
+                    finishedPlayers.push(i);
 
-                    runner.style.fontSize = '2.2rem';
-                    setTimeout(() => onWin(players[i]), 1000);
-                    break;
+                    // 꼴찌가 당첨! (마지막 한 명 남으면 종료)
+                    if (finishedPlayers.length === players.length - 1) {
+                        clearInterval(interval);
+                        const lastIdx = players.findIndex((_, idx) => !finishedPlayers.includes(idx));
+                        const lastRunner = document.getElementById(`runner${lastIdx}`);
+                        lastRunner.style.fontSize = '2.2rem';
+                        playSound('win');
+                        setTimeout(() => onWin(players[lastIdx]), 1500);
+                    }
                 }
             }
         }, 80);
@@ -1283,5 +1496,195 @@ Games.balloon = function(container, players, onWin) {
             currentPlayer = (currentPlayer + 1) % players.length;
             playerEl.textContent = players[currentPlayer] + '의 차례';
         }
+    });
+};
+
+// ─────────────────────────────────────
+// 11. Dice (주사위)
+// ─────────────────────────────────────
+Games.dice = function(container, players, onWin) {
+    let currentIdx = 0;
+    const results = [];
+    const diceEmojis = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣'];
+
+    // 주사위 면 그리기 (Canvas로 dot 패턴)
+    function drawDiceFace(value, size) {
+        const canvas = document.createElement('canvas');
+        canvas.width = size; canvas.height = size;
+        const ctx = canvas.getContext('2d');
+
+        // 배경
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.roundRect(0, 0, size, size, size * 0.13);
+        ctx.fill();
+        ctx.strokeStyle = '#CBD5E1';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        // dot 위치 (3x3 그리드 기반)
+        const p = size * 0.25; // padding
+        const positions = {
+            tl: [p, p], tc: [size/2, p], tr: [size-p, p],
+            ml: [p, size/2], mc: [size/2, size/2], mr: [size-p, size/2],
+            bl: [p, size-p], bc: [size/2, size-p], br: [size-p, size-p],
+        };
+        const layouts = {
+            1: ['mc'],
+            2: ['tr', 'bl'],
+            3: ['tr', 'mc', 'bl'],
+            4: ['tl', 'tr', 'bl', 'br'],
+            5: ['tl', 'tr', 'mc', 'bl', 'br'],
+            6: ['tl', 'tr', 'ml', 'mr', 'bl', 'br'],
+        };
+        const r = size * 0.08;
+        ctx.fillStyle = value === 1 ? '#DC2626' : '#1E293B';
+        (layouts[value] || []).forEach(key => {
+            const [x, y] = positions[key];
+            ctx.beginPath();
+            ctx.arc(x, y, r, 0, Math.PI * 2);
+            ctx.fill();
+        });
+        return canvas.toDataURL();
+    }
+
+    const diceSize = 140;
+    const initialImg = drawDiceFace(1, diceSize);
+
+    container.innerHTML = `
+        <style>
+            .dice-img {
+                width: ${diceSize}px; height: ${diceSize}px;
+                margin: 20px auto;
+                border-radius: 18px;
+                box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+                transition: transform 0.1s;
+            }
+            .dice-img.rolling {
+                animation: diceShake 0.08s infinite alternate;
+            }
+            @keyframes diceShake {
+                0% { transform: rotate(-15deg) scale(1.1); }
+                100% { transform: rotate(15deg) scale(1.1); }
+            }
+        </style>
+        <div style="text-align:center;padding:20px;max-width:500px;margin:0 auto;">
+            <div id="dicePlayerName" style="font-size:1.3rem;font-weight:700;color:#4F46E5;margin-bottom:16px;">
+                ${players[0]}의 차례
+            </div>
+            <img id="diceImg" class="dice-img" src="${initialImg}" alt="dice">
+            <div id="diceValue" style="font-size:2.5rem;font-weight:900;color:#4F46E5;margin:8px 0;min-height:50px;"></div>
+            <button id="diceRollBtn" style="
+                padding:14px 40px;background:#4F46E5;color:#fff;border:none;border-radius:12px;
+                font-size:1.1rem;font-weight:700;cursor:pointer;margin-bottom:24px;
+            ">🎲 주사위 굴리기!</button>
+            <div id="diceResults" style="margin-top:16px;"></div>
+        </div>
+    `;
+
+    const diceImg = document.getElementById('diceImg');
+    const valueEl = document.getElementById('diceValue');
+    const nameEl = document.getElementById('dicePlayerName');
+    const rollBtn = document.getElementById('diceRollBtn');
+    const resultsEl = document.getElementById('diceResults');
+
+    function renderResults() {
+        resultsEl.innerHTML = results.map((r, i) => `
+            <div style="
+                display:flex;align-items:center;justify-content:space-between;
+                padding:10px 16px;margin:6px 0;border-radius:10px;
+                background:${i === results.length - 1 ? '#EEF2FF' : '#F8FAFC'};
+                border:1px solid ${i === results.length - 1 ? '#C7D2FE' : '#E2E8F0'};
+            ">
+                <span style="font-weight:600;color:#1E293B;">${r.name}</span>
+                <span style="font-size:1.5rem;">${diceEmojis[r.value - 1]}</span>
+                <span style="font-weight:700;font-size:1.2rem;color:#4F46E5;">${r.value}</span>
+            </div>
+        `).join('');
+    }
+
+    rollBtn.addEventListener('click', () => {
+        rollBtn.disabled = true;
+        rollBtn.style.opacity = '0.5';
+
+        // 주사위 굴리기 애니메이션
+        const finalValue = Math.floor(Math.random() * 6) + 1;
+        diceImg.classList.add('rolling');
+        valueEl.textContent = '';
+        if (typeof playSound === 'function') playSound('tick');
+
+        // 빠르게 면 바꾸기 애니메이션
+        let rollCount = 0;
+        const rollInterval = setInterval(() => {
+            const randVal = Math.floor(Math.random() * 6) + 1;
+            diceImg.src = drawDiceFace(randVal, diceSize);
+            rollCount++;
+            if (rollCount >= 12) {
+                clearInterval(rollInterval);
+                diceImg.classList.remove('rolling');
+                diceImg.style.transform = '';
+                diceImg.src = drawDiceFace(finalValue, diceSize);
+                valueEl.textContent = finalValue;
+                if (typeof playSound === 'function') playSound('pop');
+
+                results.push({ name: players[currentIdx], value: finalValue });
+                renderResults();
+
+                currentIdx++;
+
+                if (currentIdx >= players.length) {
+                    rollBtn.style.display = 'none';
+                    let maxVal = 0;
+                    let winners = [];
+                    results.forEach(r => {
+                        if (r.value > maxVal) {
+                            maxVal = r.value;
+                            winners = [r.name];
+                        } else if (r.value === maxVal) {
+                            winners.push(r.name);
+                        }
+                    });
+
+                    if (winners.length > 1) {
+                        nameEl.textContent = '동점! 재대결!';
+                        nameEl.style.color = '#EF4444';
+                        setTimeout(() => {
+                            results.length = 0;
+                            currentIdx = 0;
+                            const tiedPlayers = [...winners];
+                            players.length = 0;
+                            players.push(...tiedPlayers);
+                            nameEl.textContent = players[0] + '의 차례';
+                            nameEl.style.color = '#4F46E5';
+                            valueEl.textContent = '';
+                            diceImg.src = drawDiceFace(1, diceSize);
+                            rollBtn.style.display = '';
+                            rollBtn.disabled = false;
+                            rollBtn.style.opacity = '1';
+                            renderResults();
+                        }, 1500);
+                    } else {
+                        nameEl.innerHTML = `🏆 <span style="color:#F59E0B;">${winners[0]}</span> 당첨!`;
+                        resultsEl.querySelectorAll('div').forEach(div => {
+                            const nameSpan = div.querySelector('span');
+                            if (nameSpan && nameSpan.textContent === winners[0]) {
+                                div.style.background = '#FEF3C7';
+                                div.style.borderColor = '#F59E0B';
+                            }
+                        });
+                        if (typeof playSound === 'function') playSound('win');
+                        setTimeout(() => onWin(winners[0]), 1500);
+                    }
+                } else {
+                    setTimeout(() => {
+                        nameEl.textContent = players[currentIdx] + '의 차례';
+                        valueEl.textContent = '';
+                        diceImg.src = drawDiceFace(1, diceSize);
+                        rollBtn.disabled = false;
+                        rollBtn.style.opacity = '1';
+                    }, 800);
+                }
+            }
+        }, 70);
     });
 };

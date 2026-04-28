@@ -73,21 +73,178 @@ document.getElementById('betCustom').addEventListener('input', (e) => {
 
 // ── Game Selection ──
 document.querySelectorAll('.game-card').forEach(card => {
-    card.addEventListener('click', async () => {
+    card.addEventListener('click', () => {
         const gameType = card.dataset.game;
-        try {
-            const members = await api('/api/members');
-            if (members.length < 2) {
-                toast('최소 2명 이상의 멤버가 필요합니다');
-                return;
-            }
-            const betName = document.getElementById('betCustom').value.trim() || currentBet;
-            startGame(gameType, members.map(m => m.name), betName);
-        } catch (err) {
-            toast(err.message);
-        }
+        showGameSetup(gameType);
     });
 });
+
+// ── Game Setup Flow ──
+let setupGameType = null;
+let setupMode = null;
+let setupMembers = [];
+
+function showGameSetup(gameType) {
+    setupGameType = gameType;
+    setupMode = null;
+    setupMembers = [];
+    const title = gameTitles[gameType] || gameType;
+
+    const overlay = document.getElementById('gameSetupOverlay');
+    overlay.innerHTML = `
+        <div class="setup-container">
+            <button class="setup-close" id="setupClose">&times;</button>
+            <div class="setup-step active" id="setupStep1">
+                <div class="setup-game-title">${title}</div>
+                <h3 class="setup-heading">모드 선택</h3>
+                <div class="setup-mode-grid">
+                    <button class="setup-mode-btn" data-mode="practice">
+                        <span class="setup-mode-icon">🔵</span>
+                        <span class="setup-mode-label">연습</span>
+                        <span class="setup-mode-desc">기록되지 않아요</span>
+                    </button>
+                    <button class="setup-mode-btn" data-mode="real">
+                        <span class="setup-mode-icon">🔴</span>
+                        <span class="setup-mode-label">실전</span>
+                        <span class="setup-mode-desc">결과가 기록돼요</span>
+                    </button>
+                </div>
+            </div>
+            <div class="setup-step" id="setupStep2">
+                <div class="setup-game-title">${title}</div>
+                <h3 class="setup-heading">참가 멤버</h3>
+                <div class="setup-member-input">
+                    <input type="text" id="setupMemberInput" placeholder="이름 입력 후 Enter" autocomplete="off">
+                    <button class="setup-add-btn" id="setupAddBtn">추가</button>
+                </div>
+                <div class="setup-member-list" id="setupMemberList"></div>
+                <div class="setup-saved-members" id="setupSavedMembers"></div>
+                <div class="setup-bet-section">
+                    <h4 class="setup-heading-sm">내기 종류</h4>
+                    <div class="setup-bet-chips">
+                        <button class="setup-bet-chip active" data-bet="커피">☕ 커피</button>
+                        <button class="setup-bet-chip" data-bet="점심">🍚 점심</button>
+                        <button class="setup-bet-chip" data-bet="간식">🍰 간식</button>
+                    </div>
+                </div>
+                <button class="setup-start-btn" id="setupStartBtn" disabled>게임 시작</button>
+            </div>
+        </div>
+    `;
+    overlay.classList.add('active');
+
+    // Close
+    document.getElementById('setupClose').addEventListener('click', () => {
+        overlay.classList.remove('active');
+    });
+
+    // Mode selection
+    overlay.querySelectorAll('.setup-mode-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            setupMode = btn.dataset.mode;
+            document.getElementById('setupStep1').classList.remove('active');
+            document.getElementById('setupStep2').classList.add('active');
+            loadSavedMembers();
+            setTimeout(() => document.getElementById('setupMemberInput').focus(), 200);
+        });
+    });
+
+    // Add member
+    const addMember = () => {
+        const input = document.getElementById('setupMemberInput');
+        const name = input.value.trim();
+        if (!name) return;
+        if (setupMembers.includes(name)) { toast('이미 추가된 멤버입니다'); return; }
+        setupMembers.push(name);
+        input.value = '';
+        input.focus();
+        renderSetupMembers();
+    };
+
+    document.getElementById('setupAddBtn').addEventListener('click', addMember);
+    document.getElementById('setupMemberInput').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); addMember(); }
+    });
+
+    // Bet chips
+    overlay.querySelectorAll('.setup-bet-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            overlay.querySelectorAll('.setup-bet-chip').forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
+            currentBet = chip.dataset.bet;
+        });
+    });
+
+    // Start game
+    document.getElementById('setupStartBtn').addEventListener('click', () => {
+        if (setupMembers.length < 2) { toast('최소 2명 이상 필요합니다'); return; }
+        // Set mode radio for compatibility
+        const realRadio = document.querySelector('input[name="gameMode"][value="real"]');
+        const practiceRadio = document.querySelector('input[name="gameMode"][value="practice"]');
+        if (setupMode === 'real' && realRadio) realRadio.checked = true;
+        if (setupMode === 'practice' && practiceRadio) practiceRadio.checked = true;
+
+        overlay.classList.remove('active');
+        const betName = currentBet;
+        // 멤버 순서 랜덤 셔플
+        const shuffledMembers = shuffle([...setupMembers]);
+        // 랜덤 게임이면 게임도 랜덤 선택
+        let gameToPlay = setupGameType;
+        if (gameToPlay === 'random') {
+            const gameKeys = Object.keys(gameTitles);
+            gameToPlay = gameKeys[Math.floor(Math.random() * gameKeys.length)];
+            toast(`🎲 ${gameTitles[gameToPlay]} 선택!`);
+        }
+        startGame(gameToPlay, shuffledMembers, betName);
+    });
+}
+
+async function loadSavedMembers() {
+    try {
+        const members = await api('/api/members');
+        const container = document.getElementById('setupSavedMembers');
+        if (members.length === 0) { container.innerHTML = ''; return; }
+        container.innerHTML = `
+            <div class="setup-saved-title">등록된 멤버 (클릭하여 추가)</div>
+            <div class="setup-saved-chips">
+                ${members.map(m => `<button class="setup-saved-chip" data-name="${esc(m.name)}">${esc(m.name)}</button>`).join('')}
+                <button class="setup-saved-chip setup-all-chip" data-action="all">전체 추가</button>
+            </div>
+        `;
+        container.querySelectorAll('.setup-saved-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                if (chip.dataset.action === 'all') {
+                    members.forEach(m => {
+                        if (!setupMembers.includes(m.name)) setupMembers.push(m.name);
+                    });
+                } else {
+                    const name = chip.dataset.name;
+                    if (!setupMembers.includes(name)) setupMembers.push(name);
+                    else { toast('이미 추가된 멤버입니다'); return; }
+                }
+                renderSetupMembers();
+            });
+        });
+    } catch (e) {}
+}
+
+function renderSetupMembers() {
+    const list = document.getElementById('setupMemberList');
+    list.innerHTML = setupMembers.map((name, i) => `
+        <div class="setup-member-tag">
+            <span>${esc(name)}</span>
+            <button class="setup-member-remove" data-idx="${i}">&times;</button>
+        </div>
+    `).join('');
+    list.querySelectorAll('.setup-member-remove').forEach(btn => {
+        btn.addEventListener('click', () => {
+            setupMembers.splice(parseInt(btn.dataset.idx), 1);
+            renderSetupMembers();
+        });
+    });
+    const startBtn = document.getElementById('setupStartBtn');
+    if (startBtn) startBtn.disabled = setupMembers.length < 2;
+}
 
 const gameTitles = {
     ladder: '🪜 사다리 타기',
@@ -97,9 +254,10 @@ const gameTitles = {
     box: '🎁 기프트 박스',
     pirate: '🏴‍☠️ 해적 통아저씨',
     race: '🏇 경마 레이스',
-    slot: '🎰 슬롯머신',
     croc: '🐊 악어 이빨',
-    balloon: '🎈 풍선 터뜨리기'
+    balloon: '🎈 풍선 터뜨리기',
+    dice: '🎲 주사위',
+    random: '❓ 랜덤 게임',
 };
 
 // Remember current game context for retry
@@ -111,6 +269,10 @@ function startGame(type, players, betName) {
     currentGameType = type;
     currentGamePlayers = players;
     currentGameBet = betName;
+
+    // 다시하기 버튼 숨기기
+    const footer = document.getElementById('gameFooter');
+    if (footer) footer.style.display = 'none';
 
     const overlay = document.getElementById('gameOverlay');
     const container = document.getElementById('gameContainer');
@@ -133,6 +295,14 @@ function startGame(type, players, betName) {
 document.getElementById('gameBack').addEventListener('click', () => {
     document.getElementById('gameOverlay').classList.remove('active');
     document.getElementById('gameContainer').innerHTML = '';
+    const footer = document.getElementById('gameFooter');
+    if (footer) footer.style.display = 'none';
+});
+
+document.getElementById('gameRetryBtn').addEventListener('click', () => {
+    if (currentGameType && currentGamePlayers) {
+        startGame(currentGameType, shuffle([...currentGamePlayers]), currentGameBet);
+    }
 });
 
 function isRealMode() {
@@ -141,6 +311,10 @@ function isRealMode() {
 }
 
 async function onGameComplete(winner, betName) {
+    // 게임 완료 후 다시하기 버튼 표시
+    const footer = document.getElementById('gameFooter');
+    if (footer) footer.style.display = 'flex';
+
     // 실전 모드일 때만 DB에 기록
     if (isRealMode()) {
         try {
@@ -475,6 +649,17 @@ async function deleteHistory(id) {
     try {
         await api(`/api/history/${id}`, { method: 'DELETE' });
         toast('삭제 완료');
+        loadHistory();
+    } catch (err) { toast(err.message); }
+}
+
+async function resetStats() {
+    if (!confirm('모든 추첨 기록과 통계를 삭제합니다. 정말 초기화하시겠습니까?')) return;
+    if (!confirm('되돌릴 수 없습니다. 정말로 삭제하시겠습니까?')) return;
+    try {
+        await api('/api/stats/reset', { method: 'DELETE' });
+        toast('통계가 초기화되었습니다');
+        loadStats();
         loadHistory();
     } catch (err) { toast(err.message); }
 }
