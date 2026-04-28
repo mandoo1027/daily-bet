@@ -1149,29 +1149,43 @@ Games.race = function(container, players, onWin) {
     const div = document.createElement('div');
     div.className = 'race-game';
 
-    const allIcons = ['🐂', '🐎', '🐷', '🐢', '🐵', '🐔', '🐑', '🐰', '🐍', '🐲', '🐕', '🐈', '🐘', '🦊', '🐻', '🦁', '🐧'];
-    // 플레이어 순서 셔플 (동물 재배정)
+    // 12간지 동물 스프라이트 (이름, 이모지, 파일명)
+    const zodiacAnimals = [
+        { name: '쥐', emoji: '🐭', file: 'rat' },
+        { name: '소', emoji: '🐂', file: 'ox' },
+        { name: '호랑이', emoji: '🐯', file: 'tiger' },
+        { name: '토끼', emoji: '🐰', file: 'rabbit' },
+        { name: '용', emoji: '🐲', file: 'dragon' },
+        { name: '뱀', emoji: '🐍', file: 'snake' },
+        { name: '말', emoji: '🐎', file: 'horse' },
+        { name: '양', emoji: '🐑', file: 'sheep' },
+        { name: '원숭이', emoji: '🐵', file: 'monkey' },
+        { name: '닭', emoji: '🐔', file: 'chicken' },
+        { name: '개', emoji: '🐕', file: 'dog' },
+        { name: '돼지', emoji: '🐷', file: 'pig' },
+    ];
+    // 플레이어 순서 셔플 + 동물 랜덤 배정
     const shuffled = [...players].map((name, i) => ({ name, origIdx: i }));
     for (let i = shuffled.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
-    // 아이콘도 셔플
-    const iconPool = [...allIcons].sort(() => Math.random() - 0.5);
-    const icons = shuffled.map((_, i) => iconPool[i % iconPool.length]);
-    // 셔플된 플레이어 이름 배열
+    const animalPool = [...zodiacAnimals].sort(() => Math.random() - 0.5);
+    const assigned = shuffled.map((_, i) => animalPool[i % animalPool.length]);
+    const icons = assigned.map(a => a.emoji);
     const racePlayers = shuffled.map(s => s.name);
-    const boostZone = 0.5 + Math.random() * 0.2; // 50-70% area
+    const boostZone = 0.5 + Math.random() * 0.2;
 
     let trackHTML = '<div class="race-track">';
     racePlayers.forEach((name, i) => {
+        const animal = assigned[i % assigned.length];
         trackHTML += `
             <div class="race-lane">
-                <span class="race-name">${esc(name)}</span>
+                <span class="race-name">${animal.emoji} ${esc(name)}</span>
                 <div class="race-track-bg">
                     <div class="race-boost" style="left:${boostZone * 100}%;width:10%"></div>
                     <div class="race-finish"></div>
-                    <div class="race-runner" id="runner${i}">${icons[i % icons.length]}</div>
+                    <div class="race-runner race-sprite" id="runner${i}" style="background-image:url('/daily-bet/static/images/zodiac-${animal.file}.png')"></div>
                 </div>
             </div>
         `;
