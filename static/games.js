@@ -1251,7 +1251,7 @@ Games.race = function(container, players, onWin) {
                     bomb.style.cssText = `position:absolute;left:${positions[target]}%;top:-20px;font-size:1.3rem;z-index:10;animation:bombFall 0.4s ease-in forwards;`;
                     runner.parentElement.appendChild(bomb);
                     setTimeout(() => {
-                        bomb.textContent = '💥';
+                        bomb.textContent = '💥'; playSound('explode');
                         bomb.style.top = '50%';
                         bomb.style.transform = 'translateY(-50%)';
                         bomb.style.animation = 'none';
@@ -1312,7 +1312,7 @@ Games.race = function(container, players, onWin) {
                         speedPenalty[target] = Math.max(0.3, 1 - knifeHits[target] * 0.2);
                         stunned[target] = 12;
                         const hitCount = knifeHits[target];
-                        obj.el.textContent = '🔪';
+                        obj.el.textContent = '🔪'; playSound('slash');
                         runner.style.transform = 'translateY(-50%) scaleX(-1)';
 
                         const svgEl = runner.querySelector('svg');
@@ -1343,7 +1343,7 @@ Games.race = function(container, players, onWin) {
                     } else if (obj.type === 'bat') {
                         // 방망이 충돌 → 넉백
                         stunned[target] = 10;
-                        obj.el.textContent = '💫';
+                        obj.el.textContent = '💫'; playSound('bat_hit');
                         const knockback = 8 + Math.random() * 7;
                         positions[target] = Math.max(0, positions[target] - knockback);
                         runner.style.left = positions[target] + '%';

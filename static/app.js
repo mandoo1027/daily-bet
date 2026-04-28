@@ -717,6 +717,33 @@ function playSound(type) {
             gain.gain.value = 0.05;
             osc.start();
             osc.stop(ctx.currentTime + 0.03);
+        } else if (type === 'slash') {
+            // 칼 베는 소리 (쉭~)
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(2000, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(200, ctx.currentTime + 0.2);
+            gain.gain.setValueAtTime(0.15, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.25);
+        } else if (type === 'bat_hit') {
+            // 방망이 타격 소리 (퍽!)
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(300, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(60, ctx.currentTime + 0.15);
+            gain.gain.setValueAtTime(0.25, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.2);
+        } else if (type === 'explode') {
+            // 폭탄 폭발 소리 (쾅!)
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(400, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(20, ctx.currentTime + 0.4);
+            gain.gain.setValueAtTime(0.3, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.5);
         }
     } catch (e) {}
 }
