@@ -629,7 +629,8 @@
 .race-track-bg {
     flex: 1;
     height: 80px;
-    background: var(--gray-50);
+    background: linear-gradient(to bottom, #E8F5E9, #C8E6C9);
+    border-bottom: 3px solid #A5D6A7;
     border-radius: 8px;
     position: relative;
     overflow: visible;
