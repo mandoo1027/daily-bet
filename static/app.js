@@ -675,9 +675,21 @@ async function resetStats() {
 }
 
 // ── Sound Helper ──
+// 모바일 오디오 활성화 (사용자 터치 시 resume)
+let _sharedAudioCtx = null;
+function getAudioCtx() {
+    if (!_sharedAudioCtx || _sharedAudioCtx.state === 'closed') {
+        _sharedAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (_sharedAudioCtx.state === 'suspended') _sharedAudioCtx.resume();
+    return _sharedAudioCtx;
+}
+document.addEventListener('touchstart', () => { getAudioCtx(); }, { once: true });
+document.addEventListener('click', () => { getAudioCtx(); }, { once: true });
+
 function playSound(type) {
     try {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const ctx = getAudioCtx();
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.connect(gain);
@@ -754,7 +766,7 @@ let raceBgmNodes = [];
 function startRaceBgm() {
     try {
         stopRaceBgm();
-        raceBgmCtx = new (window.AudioContext || window.webkitAudioContext)();
+        raceBgmCtx = getAudioCtx();
         const tempo = 140;
         const beat = 60 / tempo;
 
@@ -830,7 +842,7 @@ function stopRaceBgm() {
     try {
         raceBgmNodes.forEach(n => { try { n.stop(); } catch(e){} });
         raceBgmNodes = [];
-        if (raceBgmCtx) { raceBgmCtx.close(); raceBgmCtx = null; }
+        raceBgmCtx = null;
     } catch (e) {}
 }
 
