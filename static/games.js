@@ -1246,6 +1246,13 @@ Games.race = function(container, players, onWin) {
                         knife.style.animation = 'none';
                         knife.textContent = '🔪';
                         runner.style.transform = 'translateY(-50%) scaleX(-1)';
+                        // 머리 떨어뜨리기
+                        const origIcon = icons[target % icons.length];
+                        const head = document.createElement('div');
+                        head.textContent = origIcon;
+                        head.style.cssText = `position:absolute;left:${positions[target]}%;top:50%;font-size:1rem;z-index:6;pointer-events:none;animation:headDrop 0.5s ease-in forwards;`;
+                        runner.parentElement.appendChild(head);
+                        runner.textContent = '💀';
                         // 피 흘리기 이펙트
                         for (let b = 0; b < 3; b++) {
                             const blood = document.createElement('div');
@@ -1254,7 +1261,12 @@ Games.race = function(container, players, onWin) {
                             runner.parentElement.appendChild(blood);
                             setTimeout(() => { blood.style.opacity = '0.3'; }, 1500);
                         }
-                        setTimeout(() => { knife.remove(); runner.style.transform = 'translateY(-50%)'; }, 800);
+                        setTimeout(() => {
+                            knife.remove();
+                            runner.style.transform = 'translateY(-50%)';
+                            // 2초 후 머리 복구
+                            setTimeout(() => { runner.textContent = origIcon; head.remove(); }, 1500);
+                        }, 800);
                     }, 300);
                 }
             }
