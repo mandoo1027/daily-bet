@@ -331,10 +331,22 @@ async function onGameComplete(winner, betName) {
 }
 
 // ── Result Overlay with Confetti ──
+const BLOG_IMAGES = [
+    'angry.gif','baby-tired.gif','battlefield.gif','bibimbap.gif','biden-confused.gif',
+    'burned-out.jpeg','clapping.gif','coffee-time.gif','coffee.gif','damn-delicious.gif',
+    'dont-wanna-go.gif','drunk.png','eating-deliciously.gif','flexing.gif','headache.gif',
+    'hungry.gif','infinite-futures.gif','just-woke-up.gif','knock.gif','la-la-la.gif',
+    'laughing-but-sad.gif','mistake.gif','morning-person.png','no-way-really.gif','no-way.png',
+    'really-sorry.gif','rice-rice.gif','shameless.jpg','smug.jpg','so-good.gif',
+    'something-amazing-happened.gif','startled.gif','take-my-money.gif','titanic-doge-musk.png',
+    'unbelievable.gif','what-is-this-taste.gif','why.gif','wow-amazing.gif','wtf.gif','you-fool.gif'
+];
 function showResult(winner, betName, real) {
     const overlay = document.getElementById('resultOverlay');
     const emojis = ['🎉', '🏆', '👑', '🎊', '💥', '🤡', '💸', '😱'];
     document.getElementById('resultEmoji').textContent = emojis[Math.floor(Math.random() * emojis.length)];
+    const randomImg = BLOG_IMAGES[Math.floor(Math.random() * BLOG_IMAGES.length)];
+    document.getElementById('resultBlogImg').src = BASE_PATH + '/static/blog-images/' + randomImg;
     document.getElementById('resultWinner').textContent = winner;
 
     if (real) {
