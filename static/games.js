@@ -1266,7 +1266,7 @@ Games.race = function(container, players, onWin) {
                     const runner = document.getElementById(`runner${target}`);
                     const knife = document.createElement('div');
                     knife.textContent = '🗡️';
-                    knife.style.cssText = `position:absolute;right:0;top:50%;transform:translateY(-50%);font-size:2rem;z-index:10;animation:knifeThrow 0.7s ease-in forwards;`;
+                    knife.style.cssText = `position:absolute;right:0;top:50%;transform:translateY(-50%);font-size:2rem;z-index:10;animation:knifeThrow 1.2s ease-in forwards;`;
                     runner.parentElement.appendChild(knife);
                     setTimeout(() => {
                         knife.style.right = 'auto';
