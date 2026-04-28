@@ -628,7 +628,7 @@
 }
 .race-track-bg {
     flex: 1;
-    height: 50px;
+    height: 70px;
     background: var(--gray-50);
     border-radius: 8px;
     position: relative;
@@ -643,15 +643,15 @@
     transition: left .15s ease-out;
 }
 .race-runner.race-svg-runner {
-    width: 55px;
-    height: 50px;
+    width: 70px;
+    height: 65px;
     font-size: 0;
     top: 50%;
-    margin-top: -25px;
+    margin-top: -32px;
 }
 .race-svg-runner svg {
-    width: 55px;
-    height: 50px;
+    width: 70px;
+    height: 65px;
 }
 .race-svg-runner .zfl { animation: runF .35s ease-in-out infinite; }
 .race-svg-runner .zbl { animation: runB .35s ease-in-out infinite; }
