@@ -1297,6 +1297,35 @@ Games.race = function(container, players, onWin) {
                 }
             }
 
+            // 랜덤 야구 방망이 이벤트 (맞으면 뒤로 날아감)
+            if (Math.random() < 0.025) {
+                const active3 = racePlayers.map((_, i) => i).filter(i => positions[i] > 10 && positions[i] < maxPos && stunned[i] <= 0);
+                if (active3.length > 0) {
+                    const target = active3[Math.floor(Math.random() * active3.length)];
+                    stunned[target] = 10;
+                    const runner = document.getElementById(`runner${target}`);
+                    const bat = document.createElement('div');
+                    bat.textContent = '🏏';
+                    bat.style.cssText = `position:absolute;left:${positions[target] + 5}%;top:50%;transform:translateY(-50%) rotate(-45deg);font-size:1.4rem;z-index:10;animation:batSwing 0.3s ease-in forwards;`;
+                    runner.parentElement.appendChild(bat);
+                    setTimeout(() => {
+                        bat.textContent = '💫';
+                        bat.style.animation = 'none';
+                        // 뒤로 날아가기
+                        const knockback = 8 + Math.random() * 7; // 8~15% 뒤로
+                        positions[target] = Math.max(0, positions[target] - knockback);
+                        runner.style.left = positions[target] + '%';
+                        runner.style.transform = 'translateY(-50%) rotate(-30deg) scale(0.8)';
+                        runner.style.transition = 'left 0.4s ease-out';
+                        setTimeout(() => {
+                            bat.remove();
+                            runner.style.transform = 'translateY(-50%)';
+                            runner.style.transition = 'left .15s ease-out';
+                        }, 600);
+                    }, 300);
+                }
+            }
+
             for (let i = 0; i < racePlayers.length; i++) {
                 if (positions[i] >= maxPos) continue;
 
