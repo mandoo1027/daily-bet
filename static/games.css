@@ -642,22 +642,27 @@
     font-size: 1.8rem;
     transition: left .15s ease-out;
 }
-.race-runner.race-sprite {
-    width: 146px;
+.race-runner.race-svg-runner {
+    width: 55px;
     height: 50px;
-    background-size: 877px 50px;
-    background-repeat: no-repeat;
-    background-position: 0 0;
-    animation: spriteRun 0.4s steps(6) infinite;
     font-size: 0;
-    image-rendering: auto;
-    margin-top: -25px;
     top: 50%;
+    margin-top: -25px;
 }
-@keyframes spriteRun {
-    from { background-position: 0 0; }
-    to { background-position: -877px 0; }
+.race-svg-runner svg {
+    width: 55px;
+    height: 50px;
 }
+.race-svg-runner .zfl { animation: runF .35s ease-in-out infinite; }
+.race-svg-runner .zbl { animation: runB .35s ease-in-out infinite; }
+.race-svg-runner .zbd { animation: bounce .35s ease-in-out infinite; }
+.race-svg-runner .ztl { animation: tailW .4s ease-in-out infinite; }
+.race-svg-runner .zsn { animation: slither .5s ease-in-out infinite; }
+@keyframes runF { 0%,100%{transform:rotate(-20deg)} 50%{transform:rotate(25deg)} }
+@keyframes runB { 0%,100%{transform:rotate(20deg)} 50%{transform:rotate(-20deg)} }
+@keyframes bounce { 0%,100%{transform:translateY(0)} 25%{transform:translateY(-2px)} 75%{transform:translateY(1px)} }
+@keyframes tailW { 0%,100%{transform:rotate(-12deg)} 50%{transform:rotate(12deg)} }
+@keyframes slither { 0%,100%{transform:translateX(0)} 50%{transform:translateX(3px)} }
 .race-finish {
     width: 4px;
     height: 40px;
