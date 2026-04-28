@@ -1262,7 +1262,7 @@ Games.race = function(container, players, onWin) {
             }
 
             // 칼 발사 (오른쪽→왼쪽, 랜덤 레인)
-            if (Math.random() < 0.03 && flyingObjects.filter(f => f.type === 'knife').length < 2) {
+            if (Math.random() < 0.08 && flyingObjects.filter(f => f.type === 'knife').length < 4) {
                 const laneIdx = Math.floor(Math.random() * racePlayers.length);
                 const trackBg = div.querySelectorAll('.race-track-bg')[laneIdx];
                 if (trackBg) {
