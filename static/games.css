@@ -601,7 +601,7 @@
 /* ══════════════════════════════════════
    7. Racing Game (경마)
    ══════════════════════════════════════ */
-.race-game { width: 100%; max-width: 600px; }
+.race-game { width: 100%; max-width: 600px; max-height: 85vh; overflow-y: auto; }
 .race-track {
     background: white;
     border-radius: 12px;
@@ -736,11 +736,13 @@
     transition: opacity 0.3s;
 }
 .race-ranking {
-    margin-top: 16px;
-    padding: 16px;
+    margin-top: 12px;
+    padding: 12px;
     background: white;
     border-radius: 12px;
     box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    max-height: 200px;
+    overflow-y: auto;
 }
 
 /* ══════════════════════════════════════
