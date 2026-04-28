@@ -1283,7 +1283,7 @@ Games.race = function(container, players, onWin) {
                         const origEmoji = icons[target % icons.length];
                         const head = document.createElement('div');
                         head.textContent = origEmoji;
-                        head.style.cssText = `position:absolute;left:${positions[target]}%;top:50%;font-size:1.5rem;z-index:6;pointer-events:none;animation:headDrop 0.5s ease-in forwards;`;
+                        head.style.cssText = `position:absolute;left:${positions[target]}%;top:50%;font-size:2.5rem;z-index:6;pointer-events:none;animation:headDrop 0.5s ease-in forwards;`;
                         runner.parentElement.appendChild(head);
                         // SVG 머리 숨기기
                         if (headG) headG.style.display = 'none';
