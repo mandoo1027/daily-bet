@@ -1321,18 +1321,6 @@ Games.race = function(container, players, onWin) {
                         lastRunner.style.fontSize = '2.2rem';
                         playSound('win');
 
-                        // 꼴찌 아이콘 풀스크린 확대
-                        const zoom = document.createElement('div');
-                        zoom.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.7);display:flex;flex-direction:column;align-items:center;justify-content:center;animation:zoomIn 0.4s ease-out;';
-                        zoom.innerHTML = `
-                            <div style="font-size:8rem;animation:zoomBounce 0.6s ease-out;">${icons[lastIdx % icons.length]}</div>
-                            <div style="font-size:1.5rem;font-weight:800;color:#EF4444;margin-top:16px;">꼴찌 당첨!</div>
-                            <div style="font-size:1.2rem;color:white;margin-top:8px;">${esc(players[lastIdx])}</div>
-                        `;
-                        document.body.appendChild(zoom);
-                        zoom.addEventListener('click', () => zoom.remove());
-                        setTimeout(() => zoom.remove(), 2500);
-
                         // 순위 표시
                         const rankingEl = document.getElementById('raceRanking');
                         let rankHTML = '<div style="font-weight:700;font-size:1.1rem;margin-bottom:10px;color:#333;">🏁 최종 순위</div>';
