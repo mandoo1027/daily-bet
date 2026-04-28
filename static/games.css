@@ -745,20 +745,22 @@
     overflow-y: auto;
 }
 
-/* 모바일 컴팩트 모드 */
+/* 모바일 세로 모드 */
 @media (max-width: 600px) {
-    .race-track { padding: 8px; }
-    .race-lane { padding: 3px 0; gap: 4px; }
-    .race-name { width: 50px; font-size: 0.6rem; }
-    .race-track-bg { height: 45px; border-bottom-width: 2px; }
-    .race-runner.race-svg-runner { width: 42px; height: 42px; }
-    .race-svg-runner svg { width: 42px; height: 42px; }
-    .race-finish { right: 15px; height: 30px; }
-    .race-boost::after { font-size: 0.6rem; }
-    .race-obstacle { font-size: 0.6rem !important; }
-    .race-start-btn { padding: 10px 20px; font-size: 0.9rem; }
-    .race-ranking { max-height: 150px; padding: 8px; }
-    .race-ranking div { font-size: 0.8rem !important; padding: 4px 8px !important; }
+    .race-game { max-height: 90vh; }
+    .race-track { padding: 6px; margin-bottom: 8px; }
+    .race-lane { padding: 2px 0; gap: 3px; border-bottom-width: 1px; }
+    .race-name { width: 40px; font-size: 0.55rem; }
+    .race-track-bg { height: 36px; border-bottom-width: 1px; border-radius: 6px; }
+    .race-runner { font-size: 1.2rem; }
+    .race-runner.race-svg-runner { width: 34px; height: 34px; }
+    .race-svg-runner svg { width: 34px; height: 34px; }
+    .race-finish { right: 10px; height: 24px; width: 3px; }
+    .race-boost::after { font-size: 0.5rem; }
+    .race-obstacle { font-size: 0.5rem !important; }
+    .race-start-btn { padding: 8px 16px; font-size: 0.85rem; margin-bottom: 8px; }
+    .race-ranking { max-height: 130px; padding: 6px; margin-top: 6px; }
+    .race-ranking div { font-size: 0.7rem !important; padding: 3px 6px !important; margin: 2px 0 !important; }
 }
 
 /* ══════════════════════════════════════
