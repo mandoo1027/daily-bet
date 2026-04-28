@@ -1252,7 +1252,6 @@ Games.race = function(container, players, onWin) {
                         head.textContent = origIcon;
                         head.style.cssText = `position:absolute;left:${positions[target]}%;top:50%;font-size:1rem;z-index:6;pointer-events:none;animation:headDrop 0.5s ease-in forwards;`;
                         runner.parentElement.appendChild(head);
-                        runner.textContent = '💀';
                         // 피 흘리기 이펙트
                         for (let b = 0; b < 3; b++) {
                             const blood = document.createElement('div');
@@ -1264,8 +1263,7 @@ Games.race = function(container, players, onWin) {
                         setTimeout(() => {
                             knife.remove();
                             runner.style.transform = 'translateY(-50%)';
-                            // 2초 후 머리 복구
-                            setTimeout(() => { runner.textContent = origIcon; head.remove(); }, 1500);
+                            setTimeout(() => { head.remove(); }, 1500);
                         }, 800);
                     }, 300);
                 }
