@@ -1222,6 +1222,8 @@ Games.race = function(container, players, onWin) {
         }
     });
 
+    const knifeHits = new Array(racePlayers.length).fill(0); // 칼 맞은 횟수
+    const speedPenalty = new Array(racePlayers.length).fill(1); // 속도 감소 배율
     let tickCount = 0;
 
     startBtn.addEventListener('click', () => {
@@ -1259,10 +1261,14 @@ Games.race = function(container, players, onWin) {
 
             // 랜덤 칼 이벤트 (맞은편에서 날아옴)
             if (Math.random() < 0.03) {
-                const active2 = racePlayers.map((_, i) => i).filter(i => positions[i] < maxPos && stunned[i] <= 0);
+                // 칼에 4번 이상 맞은 주자는 제외
+                const active2 = racePlayers.map((_, i) => i).filter(i => positions[i] < maxPos && stunned[i] <= 0 && knifeHits[i] < 4);
                 if (active2.length > 0) {
                     const target = active2[Math.floor(Math.random() * active2.length)];
-                    stunned[target] = 12; // 약 1초 멈춤
+                    stunned[target] = 12;
+                    knifeHits[target]++;
+                    speedPenalty[target] = Math.max(0.3, 1 - knifeHits[target] * 0.2); // 맞을수록 느려짐
+                    const hitCount = knifeHits[target];
                     const runner = document.getElementById(`runner${target}`);
                     const knife = document.createElement('div');
                     knife.textContent = '🗡️';
@@ -1275,23 +1281,29 @@ Games.race = function(container, players, onWin) {
                         knife.textContent = '🔪';
                         knife.style.fontSize = '2rem';
                         runner.style.transform = 'translateY(-50%) scaleX(-1)';
-                        // SVG 머리 부분 복제 → 바닥에 남기기
+
+                        // 맞은 횟수에 따라 다른 부위 잘라내기
                         const svgEl = runner.querySelector('svg');
-                        const headGroups = svgEl ? svgEl.querySelectorAll('.zbd') : [];
-                        const headG = headGroups.length > 0 ? headGroups[headGroups.length - 1] : null;
-                        if (headG) {
-                            // 머리 SVG를 복제해서 바닥에 떨어뜨리기
-                            const headSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-                            headSvg.setAttribute('viewBox', '50 5 45 50');
-                            headSvg.appendChild(headG.cloneNode(true));
-                            const headWrap = document.createElement('div');
-                            headWrap.appendChild(headSvg);
-                            headWrap.style.cssText = `position:absolute;left:${positions[target]}%;bottom:-5px;width:45px;height:45px;z-index:20;pointer-events:none;animation:headDrop 0.6s ease-in forwards;`;
-                            runner.parentElement.appendChild(headWrap);
-                            // 원본 SVG 머리 숨기기
-                            headG.style.display = 'none';
+                        // 부위 순서: 1=머리, 2=앞다리, 3=뒷다리, 4=꼬리
+                        const partSelectors = ['.zbd:last-of-type', '.zfl', '.zbl', '.ztl'];
+                        const partViews = ['50 5 45 50', '40 45 30 35', '10 45 30 35', '0 10 20 40'];
+                        const partIdx = hitCount - 1;
+                        if (partIdx < partSelectors.length && svgEl) {
+                            const part = svgEl.querySelector(partSelectors[partIdx]);
+                            if (part) {
+                                // 잘린 부위를 복제해서 바닥에 떨어뜨리기
+                                const partSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                                partSvg.setAttribute('viewBox', partViews[partIdx]);
+                                partSvg.appendChild(part.cloneNode(true));
+                                const partWrap = document.createElement('div');
+                                partWrap.appendChild(partSvg);
+                                partWrap.style.cssText = `position:absolute;left:${positions[target]}%;bottom:-5px;width:40px;height:40px;z-index:20;pointer-events:none;animation:headDrop 0.6s ease-in forwards;`;
+                                runner.parentElement.appendChild(partWrap);
+                                // 원본에서 숨기기
+                                part.style.display = 'none';
+                            }
                         }
-                        // 피 흘리기 이펙트
+                        // 피 흘리기
                         for (let b = 0; b < 3; b++) {
                             const blood = document.createElement('div');
                             blood.style.cssText = `position:absolute;left:${positions[target] + (b * 1.5)}%;bottom:2px;font-size:0.7rem;color:#DC2626;z-index:5;opacity:0.8;pointer-events:none;`;
@@ -1302,7 +1314,6 @@ Games.race = function(container, players, onWin) {
                         setTimeout(() => {
                             knife.remove();
                             runner.style.transform = 'translateY(-50%)';
-                            // 머리는 바닥에 남기고, SVG 머리도 숨긴 채로 달림
                         }, 800);
                     }, 1200);
                 }
@@ -1346,7 +1357,7 @@ Games.race = function(container, players, onWin) {
                     continue;
                 }
 
-                let speed = Math.random() * 3;
+                let speed = Math.random() * 3 * speedPenalty[i]; // 칼 맞으면 느려짐
 
                 // Boost zone
                 const posPct = positions[i] / maxPos;
