@@ -1280,7 +1280,7 @@ Games.race = function(container, players, onWin) {
                 const trackBg = div.querySelectorAll('.race-track-bg')[laneIdx];
                 if (trackBg) {
                     const el = document.createElement('div');
-                    el.textContent = '🏏';
+                    el.textContent = '🪵';
                     el.style.cssText = `position:absolute;right:-5%;top:50%;transform:translateY(-50%) rotate(-45deg);font-size:2.5rem;z-index:10;`;
                     trackBg.appendChild(el);
                     flyingObjects.push({ type: 'bat', el, lane: laneIdx, pos: 105, speed: 1.2 + Math.random() });
