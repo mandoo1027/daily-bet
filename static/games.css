@@ -745,6 +745,22 @@
     overflow-y: auto;
 }
 
+/* 모바일 컴팩트 모드 */
+@media (max-width: 600px) {
+    .race-track { padding: 8px; }
+    .race-lane { padding: 3px 0; gap: 4px; }
+    .race-name { width: 50px; font-size: 0.6rem; }
+    .race-track-bg { height: 45px; border-bottom-width: 2px; }
+    .race-runner.race-svg-runner { width: 42px; height: 42px; }
+    .race-svg-runner svg { width: 42px; height: 42px; }
+    .race-finish { right: 15px; height: 30px; }
+    .race-boost::after { font-size: 0.6rem; }
+    .race-obstacle { font-size: 0.6rem !important; }
+    .race-start-btn { padding: 10px 20px; font-size: 0.9rem; }
+    .race-ranking { max-height: 150px; padding: 8px; }
+    .race-ranking div { font-size: 0.8rem !important; padding: 4px 8px !important; }
+}
+
 /* ══════════════════════════════════════
    8. Slot Machine (슬롯머신)
    ══════════════════════════════════════ */
