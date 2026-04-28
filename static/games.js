@@ -1233,6 +1233,14 @@ Games.race = function(container, players, onWin) {
                         rankingEl.innerHTML = rankHTML;
                         rankingEl.style.display = 'block';
 
+                        // 경주 중 버튼 → 다시하기 버튼으로 변경
+                        startBtn.textContent = '🔄 다시하기';
+                        startBtn.disabled = false;
+                        startBtn.onclick = () => {
+                            container.innerHTML = '';
+                            Games.race(container, players, onWin);
+                        };
+
                         setTimeout(() => onWin(players[lastIdx]), 2500);
                     }
                 }
