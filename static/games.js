@@ -1275,18 +1275,22 @@ Games.race = function(container, players, onWin) {
                         knife.textContent = '🔪';
                         knife.style.fontSize = '2rem';
                         runner.style.transform = 'translateY(-50%) scaleX(-1)';
-                        // SVG 머리 부분 숨기기 (마지막 zbd 그룹 = 머리)
+                        // SVG 머리 부분 복제 → 바닥에 남기기
                         const svgEl = runner.querySelector('svg');
                         const headGroups = svgEl ? svgEl.querySelectorAll('.zbd') : [];
                         const headG = headGroups.length > 0 ? headGroups[headGroups.length - 1] : null;
-                        // 머리 이모지를 바닥에 떨어뜨리기
-                        const origEmoji = icons[target % icons.length];
-                        const head = document.createElement('div');
-                        head.textContent = origEmoji;
-                        head.style.cssText = `position:absolute;left:${positions[target]}%;bottom:0;font-size:2.5rem;z-index:20;pointer-events:none;animation:headDrop 0.6s ease-in forwards;`;
-                        runner.parentElement.appendChild(head);
-                        // SVG 머리 숨기기
-                        if (headG) headG.style.display = 'none';
+                        if (headG) {
+                            // 머리 SVG를 복제해서 바닥에 떨어뜨리기
+                            const headSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                            headSvg.setAttribute('viewBox', '50 5 45 50');
+                            headSvg.appendChild(headG.cloneNode(true));
+                            const headWrap = document.createElement('div');
+                            headWrap.appendChild(headSvg);
+                            headWrap.style.cssText = `position:absolute;left:${positions[target]}%;bottom:-5px;width:45px;height:45px;z-index:20;pointer-events:none;animation:headDrop 0.6s ease-in forwards;`;
+                            runner.parentElement.appendChild(headWrap);
+                            // 원본 SVG 머리 숨기기
+                            headG.style.display = 'none';
+                        }
                         // 피 흘리기 이펙트
                         for (let b = 0; b < 3; b++) {
                             const blood = document.createElement('div');
