@@ -1175,17 +1175,68 @@ Games.race = function(container, players, onWin) {
 
     const startBtn = document.getElementById('raceStartBtn');
     const positions = new Array(players.length).fill(0);
+    const stunned = new Array(players.length).fill(0); // 스턴 남은 틱 수
     const maxPos = 85; // percent
+
+    // 장애물 위치 랜덤 생성 (트랙당 1~2개)
+    const obstacles = [];
+    players.forEach((_, i) => {
+        const count = 1 + Math.floor(Math.random() * 2);
+        for (let j = 0; j < count; j++) {
+            const pos = 15 + Math.random() * 55; // 15~70% 구간
+            obstacles.push({ lane: i, pos });
+            const trackBg = div.querySelectorAll('.race-track-bg')[i];
+            const obs = document.createElement('div');
+            obs.className = 'race-obstacle';
+            obs.textContent = '🪨';
+            obs.style.cssText = `position:absolute;left:${pos}%;top:50%;transform:translateY(-50%);font-size:0.9rem;z-index:1;opacity:0.6;`;
+            trackBg.appendChild(obs);
+        }
+    });
+
+    let tickCount = 0;
 
     startBtn.addEventListener('click', () => {
         startBtn.disabled = true;
         startBtn.textContent = '경주 중...';
 
         const finishedPlayers = [];
+        const tripped = new Set(); // 이미 넘어진 장애물
 
         const interval = setInterval(() => {
+            tickCount++;
+
+            // 랜덤 폭탄 이벤트 (평균 2초마다, 랜덤 주자)
+            if (Math.random() < 0.04) {
+                const active = players.map((_, i) => i).filter(i => positions[i] < maxPos && stunned[i] <= 0);
+                if (active.length > 0) {
+                    const target = active[Math.floor(Math.random() * active.length)];
+                    stunned[target] = 15; // 약 1.2초 멈춤 (15틱 * 80ms)
+                    const runner = document.getElementById(`runner${target}`);
+                    // 폭탄 이펙트
+                    const bomb = document.createElement('div');
+                    bomb.textContent = '💣';
+                    bomb.style.cssText = `position:absolute;left:${positions[target]}%;top:-20px;font-size:1.3rem;z-index:10;animation:bombFall 0.4s ease-in forwards;`;
+                    runner.parentElement.appendChild(bomb);
+                    setTimeout(() => {
+                        bomb.textContent = '💥';
+                        bomb.style.top = '50%';
+                        bomb.style.transform = 'translateY(-50%)';
+                        bomb.style.animation = 'none';
+                        runner.style.transform = 'translateY(-50%) rotate(20deg)';
+                        setTimeout(() => { bomb.remove(); runner.style.transform = 'translateY(-50%)'; }, 800);
+                    }, 400);
+                }
+            }
+
             for (let i = 0; i < players.length; i++) {
                 if (positions[i] >= maxPos) continue;
+
+                // 스턴 상태면 멈춤
+                if (stunned[i] > 0) {
+                    stunned[i]--;
+                    continue;
+                }
 
                 let speed = Math.random() * 3;
 
@@ -1205,6 +1256,18 @@ Games.race = function(container, players, onWin) {
 
                 const runner = document.getElementById(`runner${i}`);
                 runner.style.left = positions[i] + '%';
+
+                // 장애물 충돌 체크
+                for (const obs of obstacles) {
+                    const obsKey = `${obs.lane}-${obs.pos}`;
+                    if (obs.lane === i && !tripped.has(obsKey) && Math.abs(positions[i] - obs.pos) < 2) {
+                        tripped.add(obsKey);
+                        stunned[i] = 8; // 약 0.6초 멈춤
+                        runner.style.transform = 'translateY(-50%) rotate(-15deg)';
+                        setTimeout(() => { runner.style.transform = 'translateY(-50%)'; }, 500);
+                        break;
+                    }
+                }
 
                 if (positions[i] >= maxPos && !finishedPlayers.includes(i)) {
                     finishedPlayers.push(i);

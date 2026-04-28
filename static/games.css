@@ -669,6 +669,13 @@
     box-shadow: 0 4px 15px rgba(16,185,129,.3);
 }
 .race-start-btn:disabled { opacity: .5; cursor: not-allowed; }
+@keyframes bombFall {
+    0% { top: -20px; opacity: 1; }
+    100% { top: 50%; transform: translateY(-50%); opacity: 1; }
+}
+.race-obstacle {
+    transition: opacity 0.3s;
+}
 .race-ranking {
     margin-top: 16px;
     padding: 16px;
