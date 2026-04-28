@@ -1229,6 +1229,28 @@ Games.race = function(container, players, onWin) {
                 }
             }
 
+            // 랜덤 칼 이벤트 (맞은편에서 날아옴)
+            if (Math.random() < 0.03) {
+                const active = players.map((_, i) => i).filter(i => positions[i] < maxPos && stunned[i] <= 0);
+                if (active.length > 0) {
+                    const target = active[Math.floor(Math.random() * active.length)];
+                    stunned[target] = 12; // 약 1초 멈춤
+                    const runner = document.getElementById(`runner${target}`);
+                    const knife = document.createElement('div');
+                    knife.textContent = '🗡️';
+                    knife.style.cssText = `position:absolute;right:0;top:50%;transform:translateY(-50%);font-size:1.2rem;z-index:10;animation:knifeThrow 0.3s ease-in forwards;`;
+                    runner.parentElement.appendChild(knife);
+                    setTimeout(() => {
+                        knife.style.right = 'auto';
+                        knife.style.left = positions[target] + '%';
+                        knife.style.animation = 'none';
+                        knife.textContent = '🔪';
+                        runner.style.transform = 'translateY(-50%) scaleX(-1)';
+                        setTimeout(() => { knife.remove(); runner.style.transform = 'translateY(-50%)'; }, 800);
+                    }, 300);
+                }
+            }
+
             for (let i = 0; i < players.length; i++) {
                 if (positions[i] >= maxPos) continue;
 
