@@ -1234,12 +1234,14 @@ Games.race = function(container, players, onWin) {
                         rankingEl.style.display = 'block';
 
                         // 경주 중 버튼 → 다시하기 버튼으로 변경
-                        startBtn.textContent = '🔄 다시하기';
-                        startBtn.disabled = false;
-                        startBtn.onclick = () => {
+                        const retryBtn = document.createElement('button');
+                        retryBtn.className = 'race-start-btn';
+                        retryBtn.textContent = '🔄 다시하기';
+                        retryBtn.addEventListener('click', () => {
                             container.innerHTML = '';
                             Games.race(container, players, onWin);
-                        };
+                        });
+                        startBtn.replaceWith(retryBtn);
 
                         setTimeout(() => onWin(players[lastIdx]), 2500);
                     }
