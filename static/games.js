@@ -1272,14 +1272,19 @@ Games.race = function(container, players, onWin) {
                     const runner = document.getElementById(`runner${target}`);
                     const knife = document.createElement('div');
                     knife.textContent = '🗡️';
-                    knife.style.cssText = `position:absolute;right:0;top:50%;transform:translateY(-50%);font-size:2rem;z-index:10;animation:knifeThrow 4s ease-in forwards;`;
+                    knife.style.cssText = `position:absolute;right:-5%;top:50%;transform:translateY(-50%) rotate(-90deg);font-size:2.5rem;z-index:10;transition:right 2s ease-in, transform 2s ease-in;`;
                     runner.parentElement.appendChild(knife);
-                    setTimeout(() => {
-                        knife.style.right = 'auto';
-                        knife.style.left = positions[target] + '%';
-                        knife.style.animation = 'none';
+                    // 칼이 캐릭터 위치로 날아감
+                    const targetRight = (100 - positions[target]) + '%';
+                    requestAnimationFrame(() => {
+                        knife.style.right = targetRight;
+                        knife.style.transform = 'translateY(-50%) rotate(0deg)';
+                    });
+                    // 칼이 도착하면 잘림 (transitionend)
+                    knife.addEventListener('transitionend', () => {
                         knife.textContent = '🔪';
-                        knife.style.fontSize = '2rem';
+                        knife.style.fontSize = '2.5rem';
+                        knife.style.transition = 'none';
                         runner.style.transform = 'translateY(-50%) scaleX(-1)';
 
                         // 맞은 횟수에 따라 다른 부위 잘라내기
@@ -1315,7 +1320,7 @@ Games.race = function(container, players, onWin) {
                             knife.remove();
                             runner.style.transform = 'translateY(-50%)';
                         }, 800);
-                    }, 1200);
+                    }, { once: true });
                 }
             }
 
