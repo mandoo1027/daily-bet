@@ -728,6 +728,7 @@
     0% { right: 0; opacity: 1; transform: translateY(-50%) rotate(-90deg); }
     100% { right: 70%; opacity: 1; transform: translateY(-50%) rotate(0deg); }
 }
+.race-game { min-width: 100%; }
 .race-obstacle {
     transition: opacity 0.3s;
 }

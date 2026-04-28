@@ -1266,7 +1266,7 @@ Games.race = function(container, players, onWin) {
                     const runner = document.getElementById(`runner${target}`);
                     const knife = document.createElement('div');
                     knife.textContent = '🗡️';
-                    knife.style.cssText = `position:absolute;right:0;top:50%;transform:translateY(-50%);font-size:2rem;z-index:10;animation:knifeThrow 0.3s ease-in forwards;`;
+                    knife.style.cssText = `position:absolute;right:0;top:50%;transform:translateY(-50%);font-size:2rem;z-index:10;animation:knifeThrow 0.7s ease-in forwards;`;
                     runner.parentElement.appendChild(knife);
                     setTimeout(() => {
                         knife.style.right = 'auto';
@@ -1313,7 +1313,7 @@ Games.race = function(container, players, onWin) {
                     const runner = document.getElementById(`runner${target}`);
                     const bat = document.createElement('div');
                     bat.textContent = '🏏';
-                    bat.style.cssText = `position:absolute;left:${positions[target] + 5}%;top:50%;transform:translateY(-50%) rotate(-45deg);font-size:2.2rem;z-index:10;animation:batSwing 0.3s ease-in forwards;`;
+                    bat.style.cssText = `position:absolute;left:${positions[target] + 5}%;top:50%;transform:translateY(-50%) rotate(-45deg);font-size:2.2rem;z-index:10;animation:batSwing 0.6s ease-in forwards;`;
                     runner.parentElement.appendChild(bat);
                     setTimeout(() => {
                         bat.textContent = '💫';
