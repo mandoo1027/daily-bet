@@ -1149,11 +1149,22 @@ Games.race = function(container, players, onWin) {
     const div = document.createElement('div');
     div.className = 'race-game';
 
-    const icons = ['🐂', '🐎', '🐷', '🐢', '🐵', '🐔', '🐑', '🐰', '🐍', '🐲', '🐕', '🐈', '🐘', '🦊', '🐻', '🦁', '🐧'];
+    const allIcons = ['🐂', '🐎', '🐷', '🐢', '🐵', '🐔', '🐑', '🐰', '🐍', '🐲', '🐕', '🐈', '🐘', '🦊', '🐻', '🦁', '🐧'];
+    // 플레이어 순서 셔플 (동물 재배정)
+    const shuffled = [...players].map((name, i) => ({ name, origIdx: i }));
+    for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    // 아이콘도 셔플
+    const iconPool = [...allIcons].sort(() => Math.random() - 0.5);
+    const icons = shuffled.map((_, i) => iconPool[i % iconPool.length]);
+    // 셔플된 플레이어 이름 배열
+    const racePlayers = shuffled.map(s => s.name);
     const boostZone = 0.5 + Math.random() * 0.2; // 50-70% area
 
     let trackHTML = '<div class="race-track">';
-    players.forEach((name, i) => {
+    racePlayers.forEach((name, i) => {
         trackHTML += `
             <div class="race-lane">
                 <span class="race-name">${esc(name)}</span>
@@ -1180,7 +1191,7 @@ Games.race = function(container, players, onWin) {
 
     // 장애물 위치 랜덤 생성 (트랙당 1~2개)
     const obstacles = [];
-    players.forEach((_, i) => {
+    racePlayers.forEach((_, i) => {
         const count = 1 + Math.floor(Math.random() * 2);
         for (let j = 0; j < count; j++) {
             const pos = 15 + Math.random() * 55; // 15~70% 구간
@@ -1208,7 +1219,7 @@ Games.race = function(container, players, onWin) {
 
             // 랜덤 폭탄 이벤트 (평균 2초마다, 랜덤 주자)
             if (Math.random() < 0.04) {
-                const active = players.map((_, i) => i).filter(i => positions[i] < maxPos && stunned[i] <= 0);
+                const active = racePlayers.map((_, i) => i).filter(i => positions[i] < maxPos && stunned[i] <= 0);
                 if (active.length > 0) {
                     const target = active[Math.floor(Math.random() * active.length)];
                     stunned[target] = 15; // 약 1.2초 멈춤 (15틱 * 80ms)
@@ -1231,9 +1242,9 @@ Games.race = function(container, players, onWin) {
 
             // 랜덤 칼 이벤트 (맞은편에서 날아옴)
             if (Math.random() < 0.03) {
-                const active = players.map((_, i) => i).filter(i => positions[i] < maxPos && stunned[i] <= 0);
-                if (active.length > 0) {
-                    const target = active[Math.floor(Math.random() * active.length)];
+                const active2 = racePlayers.map((_, i) => i).filter(i => positions[i] < maxPos && stunned[i] <= 0);
+                if (active2.length > 0) {
+                    const target = active2[Math.floor(Math.random() * active2.length)];
                     stunned[target] = 12; // 약 1초 멈춤
                     const runner = document.getElementById(`runner${target}`);
                     const knife = document.createElement('div');
@@ -1269,7 +1280,7 @@ Games.race = function(container, players, onWin) {
                 }
             }
 
-            for (let i = 0; i < players.length; i++) {
+            for (let i = 0; i < racePlayers.length; i++) {
                 if (positions[i] >= maxPos) continue;
 
                 // 스턴 상태면 멈춤
@@ -1313,9 +1324,9 @@ Games.race = function(container, players, onWin) {
                     finishedPlayers.push(i);
 
                     // 꼴찌가 당첨! (마지막 한 명 남으면 종료)
-                    if (finishedPlayers.length === players.length - 1) {
+                    if (finishedPlayers.length === racePlayers.length - 1) {
                         clearInterval(interval);
-                        const lastIdx = players.findIndex((_, idx) => !finishedPlayers.includes(idx));
+                        const lastIdx = racePlayers.findIndex((_, idx) => !finishedPlayers.includes(idx));
                         finishedPlayers.push(lastIdx);
                         const lastRunner = document.getElementById(`runner${lastIdx}`);
                         lastRunner.style.fontSize = '2.2rem';
@@ -1329,7 +1340,7 @@ Games.race = function(container, players, onWin) {
                             const isLast = rank === finishedPlayers.length - 1;
                             rankHTML += `<div style="padding:6px 12px;margin:4px 0;border-radius:8px;font-size:0.95rem;display:flex;align-items:center;gap:8px;${isLast?'background:#FEE2E2;color:#DC2626;font-weight:700;':'background:#F3F4F6;color:#374151;'}">
                                 <span style="min-width:32px;">${isLast?'💀':medal}</span>
-                                <span>${icons[idx % icons.length]} ${esc(players[idx])}</span>
+                                <span>${icons[idx % icons.length]} ${esc(racePlayers[idx])}</span>
                                 ${isLast?'<span style="margin-left:auto;font-size:0.8rem;">← 당첨!</span>':''}
                             </div>`;
                         });
@@ -1346,7 +1357,7 @@ Games.race = function(container, players, onWin) {
                         });
                         startBtn.replaceWith(retryBtn);
 
-                        setTimeout(() => onWin(players[lastIdx]), 2500);
+                        setTimeout(() => onWin(racePlayers[lastIdx]), 2500);
                     }
                 }
             }

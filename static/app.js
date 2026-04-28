@@ -249,13 +249,11 @@ function renderSetupMembers() {
 const gameTitles = {
     ladder: '🪜 사다리 타기',
     wheel: '🎡 돌림판',
-    bomb: '💣 폭탄 돌리기',
     card: '🃏 카드 뒤집기',
     box: '🎁 기프트 박스',
     pirate: '🏴‍☠️ 해적 통아저씨',
     race: '🏇 경마 레이스',
     croc: '🐊 악어 이빨',
-    balloon: '🎈 풍선 터뜨리기',
     dice: '🎲 주사위',
     random: '❓ 랜덤 게임',
 };
