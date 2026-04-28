@@ -1246,6 +1246,14 @@ Games.race = function(container, players, onWin) {
                         knife.style.animation = 'none';
                         knife.textContent = '🔪';
                         runner.style.transform = 'translateY(-50%) scaleX(-1)';
+                        // 피 흘리기 이펙트
+                        for (let b = 0; b < 3; b++) {
+                            const blood = document.createElement('div');
+                            blood.style.cssText = `position:absolute;left:${positions[target] + (b * 1.5)}%;bottom:2px;font-size:0.5rem;color:#DC2626;z-index:5;opacity:0.8;pointer-events:none;`;
+                            blood.textContent = '🩸';
+                            runner.parentElement.appendChild(blood);
+                            setTimeout(() => { blood.style.opacity = '0.3'; }, 1500);
+                        }
                         setTimeout(() => { knife.remove(); runner.style.transform = 'translateY(-50%)'; }, 800);
                     }, 300);
                 }
