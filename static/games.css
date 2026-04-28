@@ -673,6 +673,16 @@
     0% { top: -20px; opacity: 1; }
     100% { top: 50%; transform: translateY(-50%); opacity: 1; }
 }
+@keyframes zoomIn {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+}
+@keyframes zoomBounce {
+    0% { transform: scale(0); }
+    60% { transform: scale(1.2); }
+    80% { transform: scale(0.9); }
+    100% { transform: scale(1); }
+}
 @keyframes headDrop {
     0% { transform: translateY(-50%) rotate(0deg); opacity: 1; }
     50% { transform: translateY(10px) rotate(180deg); opacity: 1; }
