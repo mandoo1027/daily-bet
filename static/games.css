@@ -669,6 +669,13 @@
     box-shadow: 0 4px 15px rgba(16,185,129,.3);
 }
 .race-start-btn:disabled { opacity: .5; cursor: not-allowed; }
+.race-ranking {
+    margin-top: 16px;
+    padding: 16px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+}
 
 /* ══════════════════════════════════════
    8. Slot Machine (슬롯머신)

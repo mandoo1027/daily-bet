@@ -1169,6 +1169,7 @@ Games.race = function(container, players, onWin) {
 
     div.innerHTML = trackHTML + `
         <button class="race-start-btn" id="raceStartBtn">출발! 🚀</button>
+        <div class="race-ranking" id="raceRanking" style="display:none;"></div>
     `;
     container.appendChild(div);
 
@@ -1212,10 +1213,27 @@ Games.race = function(container, players, onWin) {
                     if (finishedPlayers.length === players.length - 1) {
                         clearInterval(interval);
                         const lastIdx = players.findIndex((_, idx) => !finishedPlayers.includes(idx));
+                        finishedPlayers.push(lastIdx);
                         const lastRunner = document.getElementById(`runner${lastIdx}`);
                         lastRunner.style.fontSize = '2.2rem';
                         playSound('win');
-                        setTimeout(() => onWin(players[lastIdx]), 1500);
+
+                        // 순위 표시
+                        const rankingEl = document.getElementById('raceRanking');
+                        let rankHTML = '<div style="font-weight:700;font-size:1.1rem;margin-bottom:10px;color:#333;">🏁 최종 순위</div>';
+                        finishedPlayers.forEach((idx, rank) => {
+                            const medal = rank === 0 ? '🥇' : rank === 1 ? '🥈' : rank === 2 ? '🥉' : `${rank+1}위`;
+                            const isLast = rank === finishedPlayers.length - 1;
+                            rankHTML += `<div style="padding:6px 12px;margin:4px 0;border-radius:8px;font-size:0.95rem;display:flex;align-items:center;gap:8px;${isLast?'background:#FEE2E2;color:#DC2626;font-weight:700;':'background:#F3F4F6;color:#374151;'}">
+                                <span style="min-width:32px;">${isLast?'💀':medal}</span>
+                                <span>${icons[idx % icons.length]} ${esc(players[idx])}</span>
+                                ${isLast?'<span style="margin-left:auto;font-size:0.8rem;">← 당첨!</span>':''}
+                            </div>`;
+                        });
+                        rankingEl.innerHTML = rankHTML;
+                        rankingEl.style.display = 'block';
+
+                        setTimeout(() => onWin(players[lastIdx]), 2500);
                     }
                 }
             }
