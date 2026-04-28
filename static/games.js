@@ -1231,7 +1231,8 @@ Games.race = function(container, players, onWin) {
         startBtn.textContent = '경주 중...';
 
         const finishedPlayers = [];
-        const tripped = new Set(); // 이미 넘어진 장애물
+        const tripped = new Set();
+        const flyingObjects = []; // 날아가는 칼/방망이 실시간 추적
 
         const interval = setInterval(() => {
             tickCount++;
@@ -1259,44 +1260,67 @@ Games.race = function(container, players, onWin) {
                 }
             }
 
-            // 랜덤 칼 이벤트 (맞은편에서 날아옴)
-            if (Math.random() < 0.03) {
-                // 칼에 4번 이상 맞은 주자는 제외
-                const active2 = racePlayers.map((_, i) => i).filter(i => positions[i] < maxPos && stunned[i] <= 0 && knifeHits[i] < 4);
-                if (active2.length > 0) {
-                    const target = active2[Math.floor(Math.random() * active2.length)];
-                    stunned[target] = 12;
-                    knifeHits[target]++;
-                    speedPenalty[target] = Math.max(0.3, 1 - knifeHits[target] * 0.2); // 맞을수록 느려짐
-                    const hitCount = knifeHits[target];
+            // 칼 발사 (오른쪽→왼쪽, 랜덤 레인)
+            if (Math.random() < 0.03 && flyingObjects.filter(f => f.type === 'knife').length < 2) {
+                const laneIdx = Math.floor(Math.random() * racePlayers.length);
+                const trackBg = div.querySelectorAll('.race-track-bg')[laneIdx];
+                if (trackBg) {
+                    const el = document.createElement('div');
+                    el.textContent = '🗡️';
+                    el.style.cssText = `position:absolute;right:-5%;top:50%;transform:translateY(-50%) rotate(-90deg);font-size:2.5rem;z-index:10;`;
+                    trackBg.appendChild(el);
+                    flyingObjects.push({ type: 'knife', el, lane: laneIdx, pos: 105, speed: 1.5 + Math.random() });
+                }
+            }
+
+            // 방망이 발사 (오른쪽→왼쪽, 랜덤 레인)
+            if (Math.random() < 0.025 && flyingObjects.filter(f => f.type === 'bat').length < 1) {
+                const laneIdx = Math.floor(Math.random() * racePlayers.length);
+                const trackBg = div.querySelectorAll('.race-track-bg')[laneIdx];
+                if (trackBg) {
+                    const el = document.createElement('div');
+                    el.textContent = '🏏';
+                    el.style.cssText = `position:absolute;right:-5%;top:50%;transform:translateY(-50%) rotate(-45deg);font-size:2.5rem;z-index:10;`;
+                    trackBg.appendChild(el);
+                    flyingObjects.push({ type: 'bat', el, lane: laneIdx, pos: 105, speed: 1.2 + Math.random() });
+                }
+            }
+
+            // 날아가는 물체 이동 + 충돌 감지
+            for (let f = flyingObjects.length - 1; f >= 0; f--) {
+                const obj = flyingObjects[f];
+                obj.pos -= obj.speed; // 오른쪽→왼쪽 이동
+                obj.el.style.right = (100 - obj.pos) + '%';
+
+                // 화면 밖으로 나가면 제거
+                if (obj.pos < -10) {
+                    obj.el.remove();
+                    flyingObjects.splice(f, 1);
+                    continue;
+                }
+
+                // 해당 레인의 주자와 충돌 감지 (위치 차이 5% 이내)
+                const runnerPos = positions[obj.lane];
+                if (Math.abs(obj.pos - runnerPos) < 5 && positions[obj.lane] < maxPos && stunned[obj.lane] <= 0) {
+                    const target = obj.lane;
                     const runner = document.getElementById(`runner${target}`);
-                    const knife = document.createElement('div');
-                    knife.textContent = '🗡️';
-                    knife.style.cssText = `position:absolute;right:-5%;top:50%;transform:translateY(-50%) rotate(-90deg);font-size:2.5rem;z-index:10;transition:right 2s ease-in, transform 2s ease-in;`;
-                    runner.parentElement.appendChild(knife);
-                    // 칼이 캐릭터 위치로 날아감
-                    const targetRight = (100 - positions[target]) + '%';
-                    requestAnimationFrame(() => {
-                        knife.style.right = targetRight;
-                        knife.style.transform = 'translateY(-50%) rotate(0deg)';
-                    });
-                    // 칼이 도착하면 잘림 (transitionend)
-                    knife.addEventListener('transitionend', () => {
-                        knife.textContent = '🔪';
-                        knife.style.fontSize = '2.5rem';
-                        knife.style.transition = 'none';
+
+                    if (obj.type === 'knife' && knifeHits[target] < 4) {
+                        // 칼 충돌 → 부위 잘림
+                        knifeHits[target]++;
+                        speedPenalty[target] = Math.max(0.3, 1 - knifeHits[target] * 0.2);
+                        stunned[target] = 12;
+                        const hitCount = knifeHits[target];
+                        obj.el.textContent = '🔪';
                         runner.style.transform = 'translateY(-50%) scaleX(-1)';
 
-                        // 맞은 횟수에 따라 다른 부위 잘라내기
                         const svgEl = runner.querySelector('svg');
-                        // 부위 순서: 1=머리, 2=앞다리, 3=뒷다리, 4=꼬리
                         const partSelectors = ['.zbd:last-of-type', '.zfl', '.zbl', '.ztl'];
                         const partViews = ['50 5 45 50', '40 45 30 35', '10 45 30 35', '0 10 20 40'];
                         const partIdx = hitCount - 1;
                         if (partIdx < partSelectors.length && svgEl) {
                             const part = svgEl.querySelector(partSelectors[partIdx]);
                             if (part) {
-                                // 잘린 부위를 복제해서 바닥에 떨어뜨리기
                                 const partSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
                                 partSvg.setAttribute('viewBox', partViews[partIdx]);
                                 partSvg.appendChild(part.cloneNode(true));
@@ -1304,11 +1328,9 @@ Games.race = function(container, players, onWin) {
                                 partWrap.appendChild(partSvg);
                                 partWrap.style.cssText = `position:absolute;left:${positions[target]}%;bottom:-5px;width:40px;height:40px;z-index:20;pointer-events:none;animation:headDrop 0.6s ease-in forwards;`;
                                 runner.parentElement.appendChild(partWrap);
-                                // 원본에서 숨기기
                                 part.style.display = 'none';
                             }
                         }
-                        // 피 흘리기
                         for (let b = 0; b < 3; b++) {
                             const blood = document.createElement('div');
                             blood.style.cssText = `position:absolute;left:${positions[target] + (b * 1.5)}%;bottom:2px;font-size:0.7rem;color:#DC2626;z-index:5;opacity:0.8;pointer-events:none;`;
@@ -1316,40 +1338,23 @@ Games.race = function(container, players, onWin) {
                             runner.parentElement.appendChild(blood);
                             setTimeout(() => { blood.style.opacity = '0.3'; }, 1500);
                         }
-                        setTimeout(() => {
-                            knife.remove();
-                            runner.style.transform = 'translateY(-50%)';
-                        }, 800);
-                    }, { once: true });
-                }
-            }
-
-            // 랜덤 야구 방망이 이벤트 (맞으면 뒤로 날아감)
-            if (Math.random() < 0.025) {
-                const active3 = racePlayers.map((_, i) => i).filter(i => positions[i] > 10 && positions[i] < maxPos && stunned[i] <= 0);
-                if (active3.length > 0) {
-                    const target = active3[Math.floor(Math.random() * active3.length)];
-                    stunned[target] = 10;
-                    const runner = document.getElementById(`runner${target}`);
-                    const bat = document.createElement('div');
-                    bat.textContent = '🏏';
-                    bat.style.cssText = `position:absolute;right:-10%;top:50%;font-size:2.2rem;z-index:10;animation:batSwing 3s ease-out forwards;`;
-                    runner.parentElement.appendChild(bat);
-                    setTimeout(() => {
-                        bat.textContent = '💫';
-                        bat.style.animation = 'none';
-                        // 뒤로 날아가기
-                        const knockback = 8 + Math.random() * 7; // 8~15% 뒤로
+                        setTimeout(() => { obj.el.remove(); runner.style.transform = 'translateY(-50%)'; }, 800);
+                    } else if (obj.type === 'bat') {
+                        // 방망이 충돌 → 넉백
+                        stunned[target] = 10;
+                        obj.el.textContent = '💫';
+                        const knockback = 8 + Math.random() * 7;
                         positions[target] = Math.max(0, positions[target] - knockback);
                         runner.style.left = positions[target] + '%';
                         runner.style.transform = 'translateY(-50%) rotate(-30deg) scale(0.8)';
                         runner.style.transition = 'left 0.4s ease-out';
                         setTimeout(() => {
-                            bat.remove();
+                            obj.el.remove();
                             runner.style.transform = 'translateY(-50%)';
                             runner.style.transition = 'left .15s ease-out';
                         }, 600);
-                    }, 1200);
+                    }
+                    flyingObjects.splice(f, 1);
                 }
             }
 
