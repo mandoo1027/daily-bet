@@ -343,8 +343,7 @@ function showResult(winner, betName, real) {
     const overlay = document.getElementById('resultOverlay');
     const emojis = ['🎉', '🏆', '👑', '🎊', '💥', '🤡', '💸', '😱'];
     document.getElementById('resultEmoji').textContent = emojis[Math.floor(Math.random() * emojis.length)];
-    const randomImg = BLOG_IMAGES[Math.floor(Math.random() * BLOG_IMAGES.length)];
-    document.getElementById('resultBlogImg').src = BASE_PATH + '/static/blog-images/' + randomImg;
+    document.getElementById('resultBlogImg').src = BASE_PATH + '/static/blog-images/wtf.gif';
     document.getElementById('resultWinner').textContent = winner;
 
     if (real) {
@@ -361,8 +360,8 @@ function showResult(winner, betName, real) {
         document.getElementById('resultBetInfo').textContent = roasts[Math.floor(Math.random() * roasts.length)];
         document.getElementById('resultAnnounce').textContent = '🔴 실전 — 당첨자 발표!';
     } else {
-        document.getElementById('resultBetInfo').textContent = `연습이니까 봐준다~ 다음엔 진짜다 ${winner}!`;
-        document.getElementById('resultAnnounce').textContent = '🔵 연습 — 기록되지 않습니다';
+        document.getElementById('resultBetInfo').textContent = `${winner}님 당첨!`;
+        document.getElementById('resultAnnounce').textContent = '🔵 연습 모드';
     }
 
     overlay.classList.add('active');
