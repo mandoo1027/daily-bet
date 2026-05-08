@@ -13,14 +13,36 @@
     .user-bar .name{font-weight:700;color:var(--primary);}
     .kakao-btn{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:8px;border:none;background:#FEE500;color:#3C1E1E;font-size:0.8rem;font-weight:700;cursor:pointer;font-family:inherit;}
     .logout-link{font-size:0.7rem;color:var(--gray-400);cursor:pointer;text-decoration:underline;}
+    /* 시작 화면 */
+    .start-screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 20px;}
+    .start-logo{font-size:3rem;margin-bottom:16px;}
+    .start-title{font-size:1.8rem;font-weight:900;color:var(--primary);margin-bottom:6px;}
+    .start-sub{font-size:0.9rem;color:var(--gray-400);margin-bottom:40px;}
+    .start-btn{width:100%;max-width:320px;padding:16px;border-radius:14px;border:none;font-size:1rem;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:12px;transition:all 0.2s;}
+    .start-btn:hover{transform:translateY(-2px);}
+    .start-kakao{background:#FEE500;color:#3C1E1E;}
+    .start-guest{background:var(--gray-100);color:var(--gray-600);border:1px solid var(--gray-200);}
+    .start-divider{display:flex;align-items:center;gap:12px;width:100%;max-width:320px;margin:8px 0;color:var(--gray-300);font-size:0.75rem;}
+    .start-divider::before,.start-divider::after{content:'';flex:1;height:1px;background:var(--gray-200);}
     </style>
 </head>
 <body>
-<div class="container" id="mainApp">
+
+<!-- 시작 화면 (로그인/비회원 선택) -->
+<div id="startScreen" class="start-screen">
+    <div class="start-logo">🎲</div>
+    <div class="start-title">Daily Bet</div>
+    <div class="start-sub">오늘의 행운을 시험해보세요!</div>
+    <button class="start-btn start-kakao" onclick="kakaoLogin()">🟡 카카오로 시작하기</button>
+    <div class="start-divider">또는</div>
+    <button class="start-btn start-guest" onclick="startAsGuest()">비회원으로 시작하기</button>
+    <div style="margin-top:20px;font-size:0.7rem;color:var(--gray-300);">로그인하면 기록이 저장됩니다</div>
+</div>
+
+<!-- 메인 앱 (숨김) -->
+<div class="container" id="mainApp" style="display:none;">
     <!-- 로그인 바 -->
-    <div class="user-bar" id="userBar">
-        <button class="kakao-btn" onclick="kakaoLogin()">🟡 카카오 로그인</button>
-    </div>
+    <div class="user-bar" id="userBar"></div>
     <header>
         <h1>Daily Bet</h1>
         <p>오늘은 누가 쏠까?</p>
@@ -203,43 +225,57 @@
 Kakao.init('{{ kakao_js_key }}');
 
 function kakaoLogin(){
-  Kakao.Auth.login({
-    success:function(auth){
-      Kakao.API.request({
-        url:'/v2/user/me',
-        success:function(res){
-          var nickname=res.kakao_account?.profile?.nickname||'사용자';
-          var profileImg=res.kakao_account?.profile?.profile_image_url||'';
-          fetch(BASE_PATH+'/api/auth/kakao',{
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({id:res.id,nickname:nickname,profile_image:profileImg})
-          }).then(function(r){return r.json();}).then(function(d){
-            if(d.ok)checkAuth();
-          });
-        }
-      });
-    },
-    fail:function(err){console.log('카카오 로그인 실패',err);}
-  });
+  var redirectUri=location.origin+BASE_PATH+'/auth/kakao/callback';
+  location.href='https://kauth.kakao.com/oauth/authorize?client_id=73ca63b50b44b890e1452b8ed68d7464&redirect_uri='+encodeURIComponent(redirectUri)+'&response_type=code&scope=profile_nickname,profile_image';
+}
+
+async function startAsGuest(){
+  document.getElementById('startScreen').style.display='none';
+  document.getElementById('mainApp').style.display='block';
+  document.getElementById('userBar').innerHTML='<span style="font-size:0.75rem;color:var(--gray-400);">비회원</span> <button class="kakao-btn" onclick="kakaoLogin()" style="font-size:0.7rem;padding:4px 10px;">🟡 로그인</button>';
+  // 비회원 기본 멤버 1~4 자동 추가
+  await initGuestMembers();
+}
+
+async function initGuestMembers(){
+  var res=await fetch(BASE_PATH+'/api/members');
+  var members=await res.json();
+  if(members.length===0){
+    for(var i=1;i<=4;i++){
+      await fetch(BASE_PATH+'/api/members',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:String(i)})});
+    }
+  }
+  if(typeof loadToday==='function')loadToday();
+}
+
+async function showMain(){
+  document.getElementById('startScreen').style.display='none';
+  document.getElementById('mainApp').style.display='block';
+  // 로그인 유저: 저장된 멤버 로드 (없으면 기본 멤버 추가)
+  var res=await fetch(BASE_PATH+'/api/members');
+  var members=await res.json();
+  if(members.length===0){
+    for(var i=1;i<=4;i++){
+      await fetch(BASE_PATH+'/api/members',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:String(i)})});
+    }
+  }
+  if(typeof loadToday==='function')loadToday();
 }
 
 function kakaoLogout(){
   fetch(BASE_PATH+'/api/auth/logout',{method:'POST'}).then(function(){
-    if(Kakao.Auth.getAccessToken()){
-      Kakao.Auth.logout(function(){checkAuth();});
-    } else {checkAuth();}
+    document.getElementById('startScreen').style.display='flex';
+    document.getElementById('mainApp').style.display='none';
   });
 }
 
 function checkAuth(){
   fetch(BASE_PATH+'/api/auth/me').then(function(r){return r.json();}).then(function(d){
-    var bar=document.getElementById('userBar');
     if(d.ok){
+      showMain();
+      var bar=document.getElementById('userBar');
       var img=d.user.profile_image?'<img src="'+d.user.profile_image+'" alt="">':'';
       bar.innerHTML=img+'<span class="name">'+d.user.nickname+'</span><span class="logout-link" onclick="kakaoLogout()">로그아웃</span>';
-    } else {
-      bar.innerHTML='<button class="kakao-btn" onclick="kakaoLogin()">🟡 카카오 로그인</button>';
     }
   });
 }

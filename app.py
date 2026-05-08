@@ -9,6 +9,7 @@ from pathlib import Path
 from flask import Flask, Blueprint, render_template, request, jsonify, session, redirect
 
 KAKAO_JS_KEY = "73ca63b50b44b890e1452b8ed68d7464"
+KAKAO_REST_KEY = "ca3cb338ecbe331992b8fcb9f5bd2da2"
 
 # URL prefix for nginx reverse proxy
 PREFIX = "/daily-bet"
@@ -29,10 +30,17 @@ def get_db():
     conn.execute("""
         CREATE TABLE IF NOT EXISTS members (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT UNIQUE NOT NULL,
-            active INTEGER DEFAULT 1
+            name TEXT NOT NULL,
+            active INTEGER DEFAULT 1,
+            user_id INTEGER,
+            UNIQUE(name, user_id)
         )
     """)
+    # 마이그레이션: user_id 컬럼 추가
+    try:
+        conn.execute("ALTER TABLE members ADD COLUMN user_id INTEGER")
+    except:
+        pass
     conn.execute("""
         CREATE TABLE IF NOT EXISTS draws (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -102,6 +110,70 @@ def api_auth_logout():
     return jsonify({"ok": True})
 
 
+@bp.route("/auth/kakao/callback")
+def kakao_callback():
+    code = request.args.get("code")
+    if not code:
+        return redirect(PREFIX + "/")
+
+    import urllib.request, urllib.parse, json
+
+    # 인가 코드 → 토큰
+    redirect_uri = "https://mandoo1027.tplinkdns.com" + PREFIX + "/auth/kakao/callback"
+    token_data = urllib.parse.urlencode({
+        "grant_type": "authorization_code",
+        "client_id": KAKAO_JS_KEY,
+        "redirect_uri": redirect_uri,
+        "code": code,
+    }).encode()
+
+    try:
+        req = urllib.request.Request("https://kauth.kakao.com/oauth/token", data=token_data)
+        req.add_header("Content-Type", "application/x-www-form-urlencoded")
+        resp = urllib.request.urlopen(req, timeout=10)
+        token_result = json.loads(resp.read())
+        access_token = token_result.get("access_token", "")
+    except Exception as e:
+        return f"카카오 토큰 오류: {e}", 400
+
+    if not access_token:
+        return redirect(PREFIX + "/")
+
+    # 토큰 → 사용자 정보
+    try:
+        req2 = urllib.request.Request("https://kapi.kakao.com/v2/user/me")
+        req2.add_header("Authorization", f"Bearer {access_token}")
+        resp2 = urllib.request.urlopen(req2, timeout=10)
+        user_info = json.loads(resp2.read())
+    except Exception as e:
+        return f"사용자 정보 오류: {e}", 400
+
+    kakao_id = str(user_info.get("id", ""))
+    profile = user_info.get("kakao_account", {}).get("profile", {})
+    nickname = profile.get("nickname", "사용자")
+    profile_image = profile.get("profile_image_url", "")
+
+    # DB 저장
+    conn = get_db()
+    user = conn.execute("SELECT * FROM users WHERE kakao_id = ?", (kakao_id,)).fetchone()
+    if not user:
+        conn.execute("INSERT INTO users (kakao_id, nickname, profile_image) VALUES (?, ?, ?)",
+                     (kakao_id, nickname, profile_image))
+        conn.commit()
+        user = conn.execute("SELECT * FROM users WHERE kakao_id = ?", (kakao_id,)).fetchone()
+    else:
+        conn.execute("UPDATE users SET nickname = ?, profile_image = ? WHERE kakao_id = ?",
+                     (nickname, profile_image, kakao_id))
+        conn.commit()
+    conn.close()
+
+    session["user_id"] = user["id"]
+    session["nickname"] = nickname
+    session["profile_image"] = profile_image
+
+    return redirect(PREFIX + "/")
+
+
 # ── Pages ──
 
 @bp.route("/")
@@ -120,10 +192,17 @@ def catch_all(path):
 
 @bp.route("/api/members", methods=["GET"])
 def api_members():
+    user_id = session.get("user_id")
     conn = get_db()
-    rows = conn.execute(
-        "SELECT id, name FROM members WHERE active = 1 ORDER BY name"
-    ).fetchall()
+    if user_id:
+        rows = conn.execute(
+            "SELECT id, name FROM members WHERE active = 1 AND user_id = ? ORDER BY name", (user_id,)
+        ).fetchall()
+    else:
+        # 비회원은 기존 공유 멤버 (user_id IS NULL)
+        rows = conn.execute(
+            "SELECT id, name FROM members WHERE active = 1 AND user_id IS NULL ORDER BY name"
+        ).fetchall()
     conn.close()
     return jsonify([dict(r) for r in rows])
 
@@ -135,9 +214,11 @@ def api_add_member():
     if not name:
         return jsonify({"error": "이름을 입력하세요"}), 400
 
+    user_id = session.get("user_id")
     conn = get_db()
     existing = conn.execute(
-        "SELECT id, active FROM members WHERE name = ?", (name,)
+        "SELECT id, active FROM members WHERE name = ? AND (user_id = ? OR (user_id IS NULL AND ? IS NULL))",
+        (name, user_id, user_id)
     ).fetchone()
 
     if existing:
@@ -149,7 +230,7 @@ def api_add_member():
         conn.close()
         return jsonify({"message": f"'{name}' 다시 활성화됨", "id": existing["id"]})
 
-    cur = conn.execute("INSERT INTO members (name) VALUES (?)", (name,))
+    cur = conn.execute("INSERT INTO members (name, user_id) VALUES (?, ?)", (name, user_id))
     conn.commit()
     member_id = cur.lastrowid
     conn.close()
