@@ -3,9 +3,12 @@
 
 import sqlite3
 import random
+import secrets
 from datetime import datetime, date
 from pathlib import Path
-from flask import Flask, Blueprint, render_template, request, jsonify
+from flask import Flask, Blueprint, render_template, request, jsonify, session, redirect
+
+KAKAO_JS_KEY = "73ca63b50b44b890e1452b8ed68d7464"
 
 # URL prefix for nginx reverse proxy
 PREFIX = "/daily-bet"
@@ -13,6 +16,7 @@ PREFIX = "/daily-bet"
 app = Flask(__name__,
             static_url_path=f"{PREFIX}/static",
             static_folder="static")
+app.secret_key = secrets.token_hex(32)
 DB_PATH = Path(__file__).parent / "daily_bet.db"
 
 bp = Blueprint("daily_bet", __name__, template_folder="templates")
@@ -38,15 +42,71 @@ def get_db():
             FOREIGN KEY (member_id) REFERENCES members(id)
         )
     """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            kakao_id TEXT UNIQUE,
+            nickname TEXT,
+            profile_image TEXT,
+            created_at TEXT DEFAULT (datetime('now','localtime'))
+        )
+    """)
     conn.commit()
     return conn
+
+
+# ── 카카오 로그인 API ──
+
+@bp.route("/api/auth/kakao", methods=["POST"])
+def api_kakao_login():
+    data = request.json
+    kakao_id = str(data.get("id", ""))
+    nickname = data.get("nickname", "")
+    profile_image = data.get("profile_image", "")
+    if not kakao_id:
+        return jsonify({"error": "kakao_id required"}), 400
+
+    conn = get_db()
+    user = conn.execute("SELECT * FROM users WHERE kakao_id = ?", (kakao_id,)).fetchone()
+    if not user:
+        conn.execute("INSERT INTO users (kakao_id, nickname, profile_image) VALUES (?, ?, ?)",
+                     (kakao_id, nickname, profile_image))
+        conn.commit()
+        user = conn.execute("SELECT * FROM users WHERE kakao_id = ?", (kakao_id,)).fetchone()
+    else:
+        conn.execute("UPDATE users SET nickname = ?, profile_image = ? WHERE kakao_id = ?",
+                     (nickname, profile_image, kakao_id))
+        conn.commit()
+    conn.close()
+
+    session["user_id"] = user["id"]
+    session["nickname"] = nickname
+    session["profile_image"] = profile_image
+    return jsonify({"ok": True, "user": {"id": user["id"], "nickname": nickname, "profile_image": profile_image}})
+
+
+@bp.route("/api/auth/me")
+def api_auth_me():
+    if "user_id" in session:
+        return jsonify({"ok": True, "user": {
+            "id": session["user_id"],
+            "nickname": session.get("nickname", ""),
+            "profile_image": session.get("profile_image", "")
+        }})
+    return jsonify({"ok": False})
+
+
+@bp.route("/api/auth/logout", methods=["POST"])
+def api_auth_logout():
+    session.clear()
+    return jsonify({"ok": True})
 
 
 # ── Pages ──
 
 @bp.route("/")
 def index():
-    return render_template("index.html", prefix=PREFIX)
+    return render_template("index.html", prefix=PREFIX, kakao_js_key=KAKAO_JS_KEY)
 
 
 @bp.route("/<path:path>")

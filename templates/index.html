@@ -6,9 +6,21 @@
     <title>Daily Bet - 오늘은 누가 쏠까?</title>
     <link rel="stylesheet" href="{{ prefix }}/static/style.css?v=2">
     <link rel="stylesheet" href="{{ prefix }}/static/games.css?v=2">
+    <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.4/kakao.min.js"></script>
+    <style>
+    .user-bar{display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:8px 0;font-size:0.8rem;}
+    .user-bar img{width:28px;height:28px;border-radius:50%;object-fit:cover;}
+    .user-bar .name{font-weight:700;color:var(--primary);}
+    .kakao-btn{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:8px;border:none;background:#FEE500;color:#3C1E1E;font-size:0.8rem;font-weight:700;cursor:pointer;font-family:inherit;}
+    .logout-link{font-size:0.7rem;color:var(--gray-400);cursor:pointer;text-decoration:underline;}
+    </style>
 </head>
 <body>
 <div class="container" id="mainApp">
+    <!-- 로그인 바 -->
+    <div class="user-bar" id="userBar">
+        <button class="kakao-btn" onclick="kakaoLogin()">🟡 카카오 로그인</button>
+    </div>
     <header>
         <h1>Daily Bet</h1>
         <p>오늘은 누가 쏠까?</p>
@@ -186,6 +198,53 @@
 <div class="toast" id="toast"></div>
 
 <script>const BASE_PATH = "{{ prefix }}";</script>
+<script>
+// 카카오 로그인
+Kakao.init('{{ kakao_js_key }}');
+
+function kakaoLogin(){
+  Kakao.Auth.login({
+    success:function(auth){
+      Kakao.API.request({
+        url:'/v2/user/me',
+        success:function(res){
+          var nickname=res.kakao_account?.profile?.nickname||'사용자';
+          var profileImg=res.kakao_account?.profile?.profile_image_url||'';
+          fetch(BASE_PATH+'/api/auth/kakao',{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({id:res.id,nickname:nickname,profile_image:profileImg})
+          }).then(function(r){return r.json();}).then(function(d){
+            if(d.ok)checkAuth();
+          });
+        }
+      });
+    },
+    fail:function(err){console.log('카카오 로그인 실패',err);}
+  });
+}
+
+function kakaoLogout(){
+  fetch(BASE_PATH+'/api/auth/logout',{method:'POST'}).then(function(){
+    if(Kakao.Auth.getAccessToken()){
+      Kakao.Auth.logout(function(){checkAuth();});
+    } else {checkAuth();}
+  });
+}
+
+function checkAuth(){
+  fetch(BASE_PATH+'/api/auth/me').then(function(r){return r.json();}).then(function(d){
+    var bar=document.getElementById('userBar');
+    if(d.ok){
+      var img=d.user.profile_image?'<img src="'+d.user.profile_image+'" alt="">':'';
+      bar.innerHTML=img+'<span class="name">'+d.user.nickname+'</span><span class="logout-link" onclick="kakaoLogout()">로그아웃</span>';
+    } else {
+      bar.innerHTML='<button class="kakao-btn" onclick="kakaoLogin()">🟡 카카오 로그인</button>';
+    }
+  });
+}
+checkAuth();
+</script>
 <script src="{{ prefix }}/static/app.js?v=2"></script>
 <script src="{{ prefix }}/static/games.js?v=2"></script>
 </body>
