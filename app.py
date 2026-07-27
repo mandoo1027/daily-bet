@@ -122,7 +122,7 @@ def kakao_callback():
     redirect_uri = "https://mandoo1027.duckdns.org" + PREFIX + "/auth/kakao/callback"
     token_data = urllib.parse.urlencode({
         "grant_type": "authorization_code",
-        "client_id": KAKAO_JS_KEY,
+        "client_id": KAKAO_REST_KEY,
         "redirect_uri": redirect_uri,
         "code": code,
     }).encode()
