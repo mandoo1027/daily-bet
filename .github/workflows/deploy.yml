@@ -11,7 +11,7 @@ jobs:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1
         with:
-          host: mandoo1027.tplinkdns.com
+          host: mandoo1027.duckdns.org
           username: gyeong-il
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
