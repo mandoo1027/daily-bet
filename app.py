@@ -119,7 +119,7 @@ def kakao_callback():
     import urllib.request, urllib.parse, json
 
     # 인가 코드 → 토큰
-    redirect_uri = "https://mandoo1027.tplinkdns.com" + PREFIX + "/auth/kakao/callback"
+    redirect_uri = "https://mandoo1027.duckdns.org" + PREFIX + "/auth/kakao/callback"
     token_data = urllib.parse.urlencode({
         "grant_type": "authorization_code",
         "client_id": KAKAO_JS_KEY,
