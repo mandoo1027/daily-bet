@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="{{ prefix }}/static/style.css?v=2">
     <link rel="stylesheet" href="{{ prefix }}/static/games.css?v=2">
     <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.4/kakao.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
     .user-bar{display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:8px 0;font-size:0.8rem;}
     .user-bar img{width:28px;height:28px;border-radius:50%;object-fit:cover;}
@@ -24,12 +25,100 @@
     .start-guest{background:var(--gray-100);color:var(--gray-600);border:1px solid var(--gray-200);}
     .start-divider{display:flex;align-items:center;gap:12px;width:100%;max-width:320px;margin:8px 0;color:var(--gray-300);font-size:0.75rem;}
     .start-divider::before,.start-divider::after{content:'';flex:1;height:1px;background:var(--gray-200);}
+    /* 그룹 팝업 */
+    .group-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:2000;display:flex;align-items:center;justify-content:center;padding:20px;}
+    .group-popup{background:#fff;border-radius:16px;width:100%;max-width:420px;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.3);}
+    .group-popup-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--gray-200);}
+    .group-popup-header h2{margin:0;font-size:1.1rem;}
+    .group-popup-close{background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--gray-400);padding:4px 8px;}
+    .group-popup-body{overflow-y:auto;padding:16px 20px;}
+    .group-section{margin-bottom:20px;}
+    .group-section h3{font-size:0.9rem;color:var(--gray-600);margin-bottom:10px;}
+    .group-input{width:100%;padding:10px 12px;border:1px solid var(--gray-200);border-radius:8px;font-size:0.9rem;margin-bottom:8px;box-sizing:border-box;}
+    .group-member-search{display:flex;gap:6px;margin-bottom:8px;}
+    .group-member-search .group-input{flex:1;margin-bottom:0;}
+    .group-add-btn{padding:10px 16px;border:none;border-radius:8px;background:var(--primary);color:#fff;font-weight:700;cursor:pointer;white-space:nowrap;font-size:0.85rem;}
+    .group-selected{display:flex;flex-wrap:wrap;gap:6px;min-height:36px;padding:8px;border:1px dashed var(--gray-200);border-radius:8px;margin-bottom:10px;}
+    .group-chip{display:inline-flex;align-items:center;gap:4px;padding:5px 10px;background:var(--gray-100);border-radius:20px;font-size:0.8rem;font-weight:600;color:var(--gray-700);}
+    .group-chip .remove{cursor:pointer;color:var(--gray-400);font-size:1rem;line-height:1;}
+    .group-chip .remove:hover{color:#ef4444;}
+    .group-save-btn{width:100%;padding:12px;border:none;border-radius:10px;background:var(--primary);color:#fff;font-size:0.9rem;font-weight:700;cursor:pointer;}
+    .group-item{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border:1px solid var(--gray-200);border-radius:10px;margin-bottom:8px;}
+    .group-item-info{flex:1;min-width:0;}
+    .group-item-name{font-weight:700;font-size:0.9rem;color:var(--gray-800);}
+    .group-item-members{font-size:0.72rem;color:var(--gray-400);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .group-item-actions{display:flex;gap:6px;flex-shrink:0;}
+    .group-load-btn{padding:6px 14px;border:none;border-radius:8px;background:var(--primary);color:#fff;font-size:0.78rem;font-weight:600;cursor:pointer;}
+    .group-del-btn{padding:6px 10px;border:none;border-radius:8px;background:rgba(239,68,68,0.15);color:#ef4444;font-size:0.78rem;font-weight:600;cursor:pointer;}
+    .group-suggest{margin-top:4px;}
+    .group-suggest-item{padding:6px 12px;cursor:pointer;font-size:0.85rem;border-radius:6px;}
+    .group-suggest-item:hover{background:var(--gray-100);}
+    .setup-group-chip{background:linear-gradient(135deg,var(--primary),#7c3aed)!important;color:#fff!important;font-weight:700!important;}
+    @keyframes countPop{0%{transform:scale(0.3);opacity:0;}50%{transform:scale(1.2);}100%{transform:scale(1);opacity:1;}}
+    /* 커스텀 모달 */
+    /* 오늘의 사주 */
+    .fortune-wrap{margin:10px 0 6px;}
+    .fortune-tabs{display:flex;gap:0;border-bottom:2px solid var(--gray-200);margin-bottom:0;}
+    .fortune-tab{padding:8px 14px;border:none;font-size:0.78rem;font-weight:600;cursor:pointer;background:none;color:var(--gray-500);font-family:inherit;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all 0.2s;}
+    .fortune-tab.active{color:var(--primary);border-bottom-color:var(--primary);}
+    .fortune-tab:hover{color:var(--primary);}
+    .fortune-tab.ext{color:#b45309;}
+    .fortune-tab.ext:hover{color:#92400e;}
+    .fortune-content{padding:14px 4px 8px;}
+    .fortune-score-bar{display:flex;align-items:center;gap:6px;margin-bottom:10px;}
+    .fortune-score-label{font-size:0.72rem;color:var(--gray-500);font-weight:600;}
+    .fortune-score-track{flex:1;height:6px;background:var(--gray-200);border-radius:3px;overflow:hidden;}
+    .fortune-score-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--primary-light),var(--primary));}
+    .fortune-score-num{font-size:0.75rem;font-weight:800;color:var(--primary);}
+    .fortune-row{display:flex;align-items:flex-start;gap:8px;padding:7px 0;}
+    .fortune-row-icon{font-size:0.95rem;flex-shrink:0;width:22px;text-align:center;}
+    .fortune-row-text{font-size:0.82rem;line-height:1.5;color:var(--gray-700);}
+    .fortune-summary{font-size:0.85rem;line-height:1.7;color:var(--gray-700);margin-bottom:10px;word-break:keep-all;}
+    .fortune-details{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;}
+    .fortune-detail{font-size:0.72rem;color:var(--gray-500);background:var(--gray-50);padding:3px 8px;border-radius:6px;}
+    .fortune-footer{display:flex;gap:8px;margin-top:8px;padding-top:8px;border-top:1px solid var(--gray-100);}
+    .fortune-tag{background:var(--gray-100);padding:4px 10px;border-radius:6px;font-size:0.7rem;font-weight:600;color:var(--gray-500);}
+    .fortune-card-guest{background:#fff;border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);position:relative;overflow:hidden;cursor:pointer;margin:10px 0 6px;}
+    .fortune-blur{filter:blur(4px);user-select:none;pointer-events:none;opacity:0.4;}
+    .fortune-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;z-index:2;}
+    .fortune-overlay-icon{font-size:1.8rem;}
+    .fortune-overlay-text{font-size:0.85rem;font-weight:700;color:var(--gray-700);}
+    .fortune-overlay-sub{font-size:0.75rem;color:var(--gray-400);background:var(--gray-100);padding:4px 14px;border-radius:20px;}
+    /* 프로필 팝업 */
+    .profile-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:2500;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px);}
+    .profile-overlay.active{display:flex;}
+    .profile-popup{background:#fff;border-radius:20px;padding:28px 24px;max-width:380px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);animation:countPop 0.3s ease;max-height:85vh;overflow-y:auto;}
+    .profile-header{display:flex;align-items:center;gap:14px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--gray-200);}
+    .profile-img{width:56px;height:56px;border-radius:50%;object-fit:cover;border:3px solid var(--primary);}
+    .profile-img-placeholder{width:56px;height:56px;border-radius:50%;background:var(--gray-200);display:flex;align-items:center;justify-content:center;font-size:1.5rem;}
+    .profile-name{font-size:1.1rem;font-weight:800;color:var(--gray-800);}
+    .profile-field{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--gray-100);}
+    .profile-field-label{font-size:0.8rem;color:var(--gray-400);font-weight:600;}
+    .profile-field-value{font-size:0.9rem;color:var(--gray-700);font-weight:600;}
+    .profile-field-value.empty{color:var(--gray-300);font-style:italic;}
+    .profile-edit-btn{margin-top:16px;width:100%;padding:12px;border:none;border-radius:10px;background:var(--primary);color:#fff;font-weight:700;font-size:0.9rem;cursor:pointer;font-family:inherit;}
+    .profile-close{position:absolute;top:12px;right:16px;background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--gray-400);}
+    .custom-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:3000;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px);}
+    .custom-modal-overlay.active{display:flex;}
+    .custom-modal{background:#fff;border-radius:20px;padding:32px 28px 24px;max-width:340px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.3);animation:countPop 0.3s ease;}
+    .custom-modal-icon{font-size:2.5rem;margin-bottom:12px;}
+    .custom-modal-msg{font-size:0.95rem;color:var(--gray-700);line-height:1.6;margin-bottom:24px;white-space:pre-line;word-break:keep-all;}
+    .custom-modal-buttons{display:flex;gap:10px;}
+    .custom-modal-cancel,.custom-modal-ok{flex:1;padding:12px;border:none;border-radius:12px;font-size:0.95rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all 0.2s;}
+    .custom-modal-cancel{background:var(--gray-100);color:var(--gray-600);}
+    .custom-modal-cancel:hover{background:var(--gray-200);}
+    .custom-modal-ok{background:var(--primary);color:#fff;}
+    .custom-modal-ok:hover{opacity:0.9;}
+    .custom-modal-ok.danger{background:#ef4444;}
+    .custom-modal-ok.danger:hover{background:#dc2626;}
+    .result-save-btn{padding:12px 24px;border-radius:12px;border:none;font-size:0.95rem;font-weight:700;cursor:pointer;background:#3b82f6;color:#fff;font-family:inherit;}
+    .game-save-btn{padding:12px 24px;border-radius:12px;border:none;font-size:0.95rem;font-weight:700;cursor:pointer;background:#3b82f6;color:#fff;font-family:inherit;}
     </style>
 </head>
 <body>
 
 <!-- 시작 화면 (로그인/비회원 선택) -->
-<div id="startScreen" class="start-screen">
+<div id="startScreen" class="start-screen" style="display:none;">
     <div class="start-logo">🎲</div>
     <div class="start-title">Daily Bet</div>
     <div class="start-sub">오늘의 행운을 시험해보세요!</div>
@@ -48,6 +137,9 @@
         <p>오늘은 누가 쏠까?</p>
     </header>
 
+    <!-- 오늘의 사주 -->
+    <div id="fortuneCard" style="display:none;"></div>
+
     <!-- Tabs -->
     <div class="tabs">
         <button class="tab active" data-tab="draw">뽑기</button>
@@ -58,27 +150,6 @@
 
     <!-- ════ Draw Panel ════ -->
     <div id="draw" class="panel active">
-        <!-- Mode + Bet type selection -->
-        <div class="card">
-            <div class="mode-select">
-                <label class="mode-radio">
-                    <input type="radio" name="gameMode" value="practice" checked>
-                    <span class="mode-label mode-practice">연습</span>
-                </label>
-                <label class="mode-radio">
-                    <input type="radio" name="gameMode" value="real">
-                    <span class="mode-label mode-real">실전</span>
-                </label>
-            </div>
-            <h2>내기 종류</h2>
-            <div class="draw-select">
-                <button class="bet-chip active" data-bet="커피">커피</button>
-                <button class="bet-chip" data-bet="점심">점심</button>
-                <button class="bet-chip" data-bet="간식">간식</button>
-                <input type="text" class="bet-custom" placeholder="직접입력" maxlength="10" id="betCustom">
-            </div>
-        </div>
-
         <!-- Game selection grid -->
         <div class="card">
             <h2>게임 선택</h2>
@@ -158,6 +229,50 @@
             </form>
             <div class="member-count" id="memberCount"></div>
             <ul class="member-list" id="memberList"></ul>
+            <button onclick="openGroupPopup()" style="margin-top:14px;width:100%;padding:12px;border:none;border-radius:10px;background:var(--primary);color:#fff;font-size:0.95rem;font-weight:700;cursor:pointer;">📁 그룹 관리</button>
+        </div>
+    </div>
+
+    <!-- 그룹 관리 팝업 -->
+    <div class="group-overlay" id="groupOverlay" style="display:none;">
+        <div class="group-popup">
+            <div class="group-popup-header">
+                <h2 id="groupPopupTitle">📁 그룹 관리</h2>
+                <button class="group-popup-close" onclick="closeGroupPopup()">&times;</button>
+            </div>
+            <div class="group-popup-body">
+                <!-- 그룹 목록 화면 -->
+                <div id="groupListView">
+                    <div class="group-section">
+                        <h3>새 그룹 만들기</h3>
+                        <div style="display:flex;gap:6px;">
+                            <input type="text" id="groupName" placeholder="그룹 이름 입력" maxlength="20" class="group-input" style="margin-bottom:0;flex:1;">
+                            <button onclick="createGroup()" class="group-add-btn">생성</button>
+                        </div>
+                    </div>
+                    <div class="group-section">
+                        <h3>저장된 그룹</h3>
+                        <div id="groupList"></div>
+                    </div>
+                </div>
+                <!-- 그룹 멤버 편집 화면 -->
+                <div id="groupEditView" style="display:none;">
+                    <button onclick="backToGroupList()" style="border:none;background:none;color:var(--primary);font-weight:700;cursor:pointer;font-size:0.85rem;margin-bottom:12px;">← 그룹 목록으로</button>
+                    <div class="group-section">
+                        <h3>멤버 추가</h3>
+                        <div class="group-member-search">
+                            <input type="text" id="groupMemberSearch" placeholder="멤버 이름 검색/입력" class="group-input" style="margin-bottom:0;">
+                            <button onclick="addGroupMember()" class="group-add-btn">추가</button>
+                        </div>
+                        <div class="group-suggest" id="groupSuggestBox" style="display:none;"></div>
+                    </div>
+                    <div class="group-section">
+                        <h3>그룹 멤버</h3>
+                        <div class="group-selected" id="groupSelectedMembers"></div>
+                        <button onclick="saveGroupMembers()" class="group-save-btn">💾 멤버 저장</button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -196,7 +311,7 @@
     </div>
     <div class="game-container" id="gameContainer"></div>
     <div class="game-footer" id="gameFooter" style="display:none;">
-        <button class="game-retry-btn" id="gameRetryBtn">🔄 다시하기</button>
+        <button class="game-save-btn" onclick="saveGameImage()">📸 화면 저장</button>
     </div>
 </div>
 
@@ -217,7 +332,27 @@
 </div>
 
 <div class="game-setup-overlay" id="gameSetupOverlay"></div>
+<!-- 프로필 팝업 -->
+<div class="profile-overlay" id="profileOverlay">
+    <div class="profile-popup" style="position:relative;">
+        <button class="profile-close" onclick="closeProfile()">&times;</button>
+        <div id="profileContent"></div>
+    </div>
+</div>
+
 <div class="toast" id="toast"></div>
+
+<!-- 커스텀 Confirm 모달 -->
+<div class="custom-modal-overlay" id="customModalOverlay">
+    <div class="custom-modal">
+        <div class="custom-modal-icon" id="customModalIcon">⚠️</div>
+        <div class="custom-modal-msg" id="customModalMsg"></div>
+        <div class="custom-modal-buttons">
+            <button class="custom-modal-cancel" id="customModalCancel">취소</button>
+            <button class="custom-modal-ok" id="customModalOk">확인</button>
+        </div>
+    </div>
+</div>
 
 <script>const BASE_PATH = "{{ prefix }}";</script>
 <script>
@@ -226,60 +361,214 @@ Kakao.init('{{ kakao_js_key }}');
 
 function kakaoLogin(){
   var redirectUri=location.origin+BASE_PATH+'/auth/kakao/callback';
-  location.href='https://kauth.kakao.com/oauth/authorize?client_id=73ca63b50b44b890e1452b8ed68d7464&redirect_uri='+encodeURIComponent(redirectUri)+'&response_type=code&scope=profile_nickname,profile_image';
+  location.href='https://kauth.kakao.com/oauth/authorize?client_id={{ kakao_rest_key }}&redirect_uri='+encodeURIComponent(redirectUri)+'&response_type=code&scope=profile_nickname,profile_image';
 }
 
+window.isGuest = false;
+
 async function startAsGuest(){
+  window.isGuest = true;
+  sessionStorage.setItem('dailybet_guest','1');
   document.getElementById('startScreen').style.display='none';
   document.getElementById('mainApp').style.display='block';
   document.getElementById('userBar').innerHTML='<span style="font-size:0.75rem;color:var(--gray-400);">비회원</span> <button class="kakao-btn" onclick="kakaoLogin()" style="font-size:0.7rem;padding:4px 10px;">🟡 로그인</button>';
-  // 비회원 기본 멤버 1~4 자동 추가
-  await initGuestMembers();
+  // 비회원 기본 멤버 1~5 자동 추가
+  await initDefaultMembers();
+  loadFortuneCard(false);
 }
 
-async function initGuestMembers(){
+function restoreGuest(){
+  window.isGuest = true;
+  document.getElementById('startScreen').style.display='none';
+  document.getElementById('mainApp').style.display='block';
+  document.getElementById('userBar').innerHTML='<span style="font-size:0.75rem;color:var(--gray-400);">비회원</span> <button class="kakao-btn" onclick="kakaoLogin()" style="font-size:0.7rem;padding:4px 10px;">🟡 로그인</button>';
+  if(typeof loadMembers==='function')loadMembers();
+  if(typeof loadToday==='function')loadToday();
+  loadFortuneCard(false);
+}
+
+async function initDefaultMembers(){
+  // 기존 비회원 멤버 전부 삭제 후 1~5 새로 생성
   var res=await fetch(BASE_PATH+'/api/members');
   var members=await res.json();
-  if(members.length===0){
-    for(var i=1;i<=4;i++){
-      await fetch(BASE_PATH+'/api/members',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:String(i)})});
-    }
+  for(var m of members){
+    await fetch(BASE_PATH+'/api/members/'+m.id,{method:'DELETE'});
   }
+  for(var i=1;i<=5;i++){
+    await fetch(BASE_PATH+'/api/members',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:String(i)})});
+  }
+  if(typeof loadMembers==='function')loadMembers();
   if(typeof loadToday==='function')loadToday();
 }
 
 async function showMain(){
   document.getElementById('startScreen').style.display='none';
   document.getElementById('mainApp').style.display='block';
-  // 로그인 유저: 저장된 멤버 로드 (없으면 기본 멤버 추가)
-  var res=await fetch(BASE_PATH+'/api/members');
-  var members=await res.json();
-  if(members.length===0){
-    for(var i=1;i<=4;i++){
-      await fetch(BASE_PATH+'/api/members',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:String(i)})});
-    }
-  }
+  if(typeof loadMembers==='function')loadMembers();
   if(typeof loadToday==='function')loadToday();
 }
 
 function kakaoLogout(){
+  sessionStorage.removeItem('dailybet_guest');
+  window.isGuest = false;
   fetch(BASE_PATH+'/api/auth/logout',{method:'POST'}).then(function(){
     document.getElementById('startScreen').style.display='flex';
     document.getElementById('mainApp').style.display='none';
+    // 탭을 뽑기로 초기화
+    document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
+    document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active');});
+    document.querySelector('.tab[data-tab="draw"]').classList.add('active');
+    document.getElementById('draw').classList.add('active');
   });
 }
 
 function checkAuth(){
   fetch(BASE_PATH+'/api/auth/me').then(function(r){return r.json();}).then(function(d){
     if(d.ok){
+      sessionStorage.removeItem('dailybet_guest');
       showMain();
       var bar=document.getElementById('userBar');
       var img=d.user.profile_image?'<img src="'+d.user.profile_image+'" alt="">':'';
-      bar.innerHTML=img+'<span class="name">'+d.user.nickname+'</span><span class="logout-link" onclick="kakaoLogout()">로그아웃</span>';
+      bar.innerHTML=img+'<span class="name" onclick="openProfile()" style="cursor:pointer;">'+d.user.nickname+'</span><span class="logout-link" onclick="kakaoLogout()">로그아웃</span>';
+      loadFortuneCard(true);
+    } else if(sessionStorage.getItem('dailybet_guest')==='1'){
+      restoreGuest();
+    } else {
+      document.getElementById('startScreen').style.display='flex';
     }
   });
 }
 checkAuth();
+
+// 오늘의 사주 카드
+var fortuneLoggedIn = false;
+
+async function loadFortuneCard(isLoggedIn) {
+  fortuneLoggedIn = isLoggedIn;
+  var card = document.getElementById('fortuneCard');
+  if (!isLoggedIn) {
+    card.innerHTML = `
+      <div class="fortune-card-guest" onclick="kakaoLogin()">
+        <div class="fortune-blur">
+          <div class="fortune-row"><div class="fortune-row-icon">🍀</div><div class="fortune-row-text">오늘은 대박 운이 따릅니다!</div></div>
+          <div class="fortune-row"><div class="fortune-row-icon">💰</div><div class="fortune-row-text">재물운 상승! 뜻밖의 수입 가능</div></div>
+          <div class="fortune-row"><div class="fortune-row-icon">💕</div><div class="fortune-row-text">소중한 사람에게 연락해보세요</div></div>
+        </div>
+        <div class="fortune-overlay">
+          <div class="fortune-overlay-icon">🔮</div>
+          <div class="fortune-overlay-text">로그인하면 오늘의 운세를 볼 수 있어요</div>
+          <div class="fortune-overlay-sub">🟡 카카오로 시작하기 →</div>
+        </div>
+      </div>`;
+    card.style.display = 'block';
+    return;
+  }
+  loadFortuneTab('daily');
+}
+
+async function loadFortuneTab(type) {
+  var card = document.getElementById('fortuneCard');
+  try {
+    var r = await fetch(BASE_PATH + '/api/daily-fortune?type=' + type);
+    var d = await r.json();
+    if (!d.ok) {
+      if (d.reason === 'no_birth') {
+        card.innerHTML = `
+          <div class="fortune-wrap" onclick="location.href=BASE_PATH+'/signup'" style="cursor:pointer;">
+            <div style="padding:16px;background:var(--primary-bg);border-radius:var(--radius);border:1px dashed var(--primary-light);text-align:center;">
+              <div style="font-size:1.2rem;margin-bottom:6px;">🔮</div>
+              <div style="font-size:0.85rem;font-weight:700;color:var(--primary);margin-bottom:4px;">생년월일을 입력하면 운세를 볼 수 있어요</div>
+              <div style="font-size:0.75rem;color:var(--gray-500);">정보 입력하러 가기 →</div>
+            </div>
+          </div>`;
+        card.style.display = 'block';
+      }
+      return;
+    }
+    var f = d.fortune;
+
+    var tabsHTML = `
+      <div class="fortune-tabs">
+        <button class="fortune-tab ${type==='daily'?'active':''}" onclick="loadFortuneTab('daily')">오늘의 운세</button>
+        <button class="fortune-tab ${type==='weekly'?'active':''}" onclick="loadFortuneTab('weekly')">이주의 운세</button>
+        <button class="fortune-tab ${type==='love'?'active':''}" onclick="loadFortuneTab('love')">연애운</button>
+        <button class="fortune-tab ext" onclick="window.open('https://mandoo1027.duckdns.org/saju/','_blank')">종합 사주 →</button>
+      </div>`;
+
+    var scoreHTML = `
+      <div class="fortune-score-bar">
+        <span class="fortune-score-label">운세지수</span>
+        <div class="fortune-score-track"><div class="fortune-score-fill" style="width:${f.score}%"></div></div>
+        <span class="fortune-score-num">${f.score}점</span>
+      </div>`;
+
+    var bodyHTML = '';
+    if (type === 'daily') {
+      bodyHTML = `
+        ${scoreHTML}
+        <div class="fortune-summary">${f.summary}</div>
+        <div class="fortune-footer">
+          <div class="fortune-tag">🔢 <b>${f.lucky_number}</b></div>
+          <div class="fortune-tag">🎨 <b>${f.lucky_color}</b></div>
+        </div>`;
+    } else if (type === 'weekly') {
+      bodyHTML = `
+        ${scoreHTML}
+        <div class="fortune-summary">${f.summary}</div>`;
+    } else if (type === 'love') {
+      bodyHTML = `
+        ${scoreHTML}
+        <div class="fortune-summary">${f.summary}</div>`;
+    }
+
+    card.innerHTML = `
+      <div class="fortune-wrap">
+        ${tabsHTML}
+        <div class="fortune-content">${bodyHTML}</div>
+      </div>`;
+    card.style.display = 'block';
+  } catch(e) {}
+}
+
+// 프로필 팝업
+async function openProfile() {
+  try {
+    var r = await fetch(BASE_PATH+'/api/auth/me');
+    var d = await r.json();
+    if (!d.ok) return;
+    var u = d.user;
+    var img = u.profile_image ? '<img class="profile-img" src="'+u.profile_image+'" alt="">' : '<div class="profile-img-placeholder">👤</div>';
+    var timeLabel = u.birth_time || '-';
+    var timeMap = {'23:30':'자시','01:30':'축시','03:30':'인시','05:30':'묘시','07:30':'진시','09:30':'사시','11:30':'오시','13:30':'미시','15:30':'신시','17:30':'유시','19:30':'술시','21:30':'해시'};
+    if (timeMap[u.birth_time]) timeLabel = timeMap[u.birth_time] + ' (' + u.birth_time + ')';
+    var solarLabel = u.solar_lunar === 'lunar' ? '🌙 음력' : '☀️ 양력';
+
+    document.getElementById('profileContent').innerHTML = `
+      <div class="profile-header">
+        ${img}
+        <div>
+          <div class="profile-name">${u.nickname}</div>
+          <div style="font-size:0.75rem;color:var(--gray-400);margin-top:2px;">Daily Bet 회원</div>
+        </div>
+      </div>
+      <div class="profile-field"><span class="profile-field-label">생년월일</span><span class="profile-field-value ${u.birth_date?'':'empty'}">${u.birth_date || '미입력'}</span></div>
+      <div class="profile-field"><span class="profile-field-label">양력/음력</span><span class="profile-field-value">${solarLabel}</span></div>
+      <div class="profile-field"><span class="profile-field-label">태어난 시간</span><span class="profile-field-value ${u.birth_time?'':'empty'}">${u.birth_time ? timeLabel : '미입력'}</span></div>
+      <div class="profile-field"><span class="profile-field-label">성별</span><span class="profile-field-value ${u.gender?'':'empty'}">${u.gender ? (u.gender === '남' ? '👨 남자' : '👩 여자') : '미입력'}</span></div>
+      <button class="profile-edit-btn" onclick="location.href=BASE_PATH+'/signup'">✏️ 정보 수정</button>
+    `;
+    document.getElementById('profileOverlay').classList.add('active');
+  } catch(e) {}
+}
+
+function closeProfile() {
+  document.getElementById('profileOverlay').classList.remove('active');
+}
+
+// 오버레이 바깥 클릭 닫기
+document.getElementById('profileOverlay').addEventListener('click', function(e) {
+  if (e.target === this) closeProfile();
+});
 </script>
 <script src="{{ prefix }}/static/app.js?v=2"></script>
 <script src="{{ prefix }}/static/games.js?v=2"></script>

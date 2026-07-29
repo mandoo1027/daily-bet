@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Bet - 회원가입</title>
+    <link rel="stylesheet" href="{{ prefix }}/static/style.css?v=3">
+    <style>
+    .signup-page{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:var(--gray-50);}
+    .signup-card{background:#fff;border-radius:20px;padding:36px 28px;max-width:400px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,0.08);}
+    .signup-header{text-align:center;margin-bottom:28px;}
+    .signup-logo{font-size:2.5rem;margin-bottom:8px;}
+    .signup-title{font-size:1.4rem;font-weight:900;color:var(--primary);}
+    .signup-sub{font-size:0.85rem;color:var(--gray-400);margin-top:4px;}
+    .signup-form{display:flex;flex-direction:column;gap:16px;}
+    .form-field{display:flex;flex-direction:column;gap:6px;}
+    .form-field label{font-size:0.85rem;font-weight:700;color:var(--gray-700);}
+    .form-field .optional{font-size:0.7rem;color:var(--gray-400);font-weight:400;}
+    .form-field input,.form-field select{padding:12px 14px;border:2px solid var(--gray-200);border-radius:10px;font-size:0.95rem;font-family:inherit;transition:border-color 0.2s;background:#fff;}
+    .form-field input:focus,.form-field select:focus{outline:none;border-color:var(--primary);}
+    .gender-group{display:flex;gap:8px;}
+    .gender-btn{flex:1;padding:12px;border:2px solid var(--gray-200);border-radius:10px;background:#fff;font-size:0.95rem;font-weight:600;cursor:pointer;text-align:center;transition:all 0.2s;}
+    .gender-btn.active{border-color:var(--primary);background:#F5F3FF;color:var(--primary);}
+    .solar-group{display:flex;gap:8px;}
+    .solar-btn{flex:1;padding:10px;border:2px solid var(--gray-200);border-radius:10px;background:#fff;font-size:0.85rem;font-weight:600;cursor:pointer;text-align:center;transition:all 0.2s;}
+    .solar-btn.active{border-color:var(--primary);background:#F5F3FF;color:var(--primary);}
+    .signup-submit{padding:14px;border:none;border-radius:12px;background:var(--primary);color:#fff;font-size:1rem;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity 0.2s;margin-top:8px;}
+    .signup-submit:hover{opacity:0.9;}
+    .signup-skip{text-align:center;margin-top:12px;}
+    .signup-skip a{color:var(--gray-400);font-size:0.8rem;text-decoration:underline;cursor:pointer;}
+    .birth-time-group{display:flex;gap:8px;flex-wrap:wrap;}
+    .time-btn{padding:8px 12px;border:2px solid var(--gray-200);border-radius:8px;background:#fff;font-size:0.78rem;font-weight:600;cursor:pointer;transition:all 0.2s;}
+    .time-btn.active{border-color:var(--primary);background:#F5F3FF;color:var(--primary);}
+    /* 커스텀 달력 */
+    .cal-wrap{position:relative;}
+    .cal-popup{display:none;position:absolute;left:0;right:0;top:calc(100% + 6px);background:#fff;border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,0.15);z-index:10;padding:16px;border:1px solid var(--gray-200);}
+    .cal-popup.open{display:block;animation:countPop 0.2s ease;}
+    .cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+    .cal-title{font-size:1rem;font-weight:800;color:var(--gray-800);}
+    .cal-nav{background:none;border:none;font-size:1.2rem;cursor:pointer;padding:4px 10px;border-radius:8px;color:var(--gray-600);}
+    .cal-nav:hover{background:var(--gray-100);}
+    .cal-year-select{display:flex;align-items:center;gap:4px;}
+    .cal-year-btn{background:none;border:none;font-size:0.7rem;cursor:pointer;padding:2px 4px;color:var(--gray-400);}
+    .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;}
+    .cal-dow{font-size:0.7rem;font-weight:700;color:var(--gray-400);padding:4px 0;}
+    .cal-dow:first-child{color:#ef4444;}
+    .cal-dow:last-child{color:#3b82f6;}
+    .cal-day{padding:8px 0;border-radius:8px;font-size:0.85rem;cursor:pointer;transition:all 0.15s;font-weight:500;border:none;background:none;color:var(--gray-700);}
+    .cal-day:hover{background:var(--gray-100);}
+    .cal-day.today{font-weight:800;color:var(--primary);background:#F5F3FF;}
+    .cal-day.selected{background:var(--primary);color:#fff;font-weight:700;}
+    .cal-day.other{color:var(--gray-300);}
+    .cal-day.sun{color:#ef4444;}
+    .cal-day.sat{color:#3b82f6;}
+    .cal-day.selected.sun,.cal-day.selected.sat{color:#fff;}
+    @keyframes countPop{0%{transform:scale(0.95);opacity:0;}100%{transform:scale(1);opacity:1;}}
+    </style>
+</head>
+<body>
+<div class="signup-page">
+    <div class="signup-card">
+        <div class="signup-header">
+            <div class="signup-logo">🎲</div>
+            <div class="signup-title">회원가입</div>
+            <div class="signup-sub">추가 정보를 입력하면 운세 기능을 이용할 수 있어요!</div>
+        </div>
+        <div class="signup-form" id="signupForm">
+            <div class="form-field">
+                <label>생년월일 <span class="optional">(선택)</span></label>
+                <div class="cal-wrap">
+                    <div style="display:flex;gap:8px;">
+                        <input type="text" id="birthDateText" placeholder="YYYY-MM-DD" maxlength="10" inputmode="numeric" style="flex:1;">
+                        <button type="button" id="calToggleBtn" style="padding:8px 14px;border:2px solid var(--gray-200);border-radius:10px;background:#fff;font-size:1.2rem;cursor:pointer;">📅</button>
+                    </div>
+                    <div class="cal-popup" id="calPopup">
+                        <div class="cal-header">
+                            <button class="cal-nav" id="calPrevMonth">‹</button>
+                            <div style="display:flex;flex-direction:column;align-items:center;">
+                                <div class="cal-year-select">
+                                    <button class="cal-year-btn" id="calPrevYear">◂</button>
+                                    <span class="cal-title" id="calTitle"></span>
+                                    <button class="cal-year-btn" id="calNextYear">▸</button>
+                                </div>
+                            </div>
+                            <button class="cal-nav" id="calNextMonth">›</button>
+                        </div>
+                        <div class="cal-grid" id="calGrid"></div>
+                    </div>
+                </div>
+                <div style="font-size:0.7rem;color:var(--gray-400);margin-top:2px;">직접 입력 또는 📅 달력 선택</div>
+            </div>
+            <div class="form-field">
+                <label>양력/음력 <span class="optional">(선택)</span></label>
+                <div class="solar-group">
+                    <button type="button" class="solar-btn active" data-value="solar" onclick="selectSolar(this)">☀️ 양력</button>
+                    <button type="button" class="solar-btn" data-value="lunar" onclick="selectSolar(this)">🌙 음력</button>
+                </div>
+            </div>
+            <div class="form-field">
+                <label>태어난 시간 <span class="optional">(선택)</span></label>
+                <select id="birthTime" onchange="selectedTime=this.value">
+                    <option value="">선택 안 함</option>
+                    <option value="모름">모름</option>
+                    <option value="23:30">자시 (23:00~01:00)</option>
+                    <option value="01:30">축시 (01:00~03:00)</option>
+                    <option value="03:30">인시 (03:00~05:00)</option>
+                    <option value="05:30">묘시 (05:00~07:00)</option>
+                    <option value="07:30">진시 (07:00~09:00)</option>
+                    <option value="09:30">사시 (09:00~11:00)</option>
+                    <option value="11:30">오시 (11:00~13:00)</option>
+                    <option value="13:30">미시 (13:00~15:00)</option>
+                    <option value="15:30">신시 (15:00~17:00)</option>
+                    <option value="17:30">유시 (17:00~19:00)</option>
+                    <option value="19:30">술시 (19:00~21:00)</option>
+                    <option value="21:30">해시 (21:00~23:00)</option>
+                </select>
+            </div>
+            <div class="form-field">
+                <label>성별 <span class="optional">(선택)</span></label>
+                <div class="gender-group">
+                    <button type="button" class="gender-btn" data-value="남" onclick="selectGender(this)">👨 남자</button>
+                    <button type="button" class="gender-btn" data-value="여" onclick="selectGender(this)">👩 여자</button>
+                </div>
+            </div>
+            <button class="signup-submit" onclick="submitSignup()">가입 완료 🎉</button>
+            <button id="signupCancelBtn" onclick="location.href=BASE_PATH+'/'" style="display:none;width:100%;padding:12px;border:2px solid var(--gray-200);border-radius:12px;background:#fff;color:var(--gray-600);font-size:0.9rem;font-weight:700;cursor:pointer;font-family:inherit;margin-top:8px;">취소</button>
+        </div>
+        <div class="signup-skip" id="signupSkip">
+            <a onclick="skipSignup()">건너뛰기 →</a>
+        </div>
+    </div>
+</div>
+
+<script>
+const BASE_PATH = "{{ prefix }}";
+let selectedGender = '';
+let selectedSolar = 'solar';
+let selectedTime = '';
+
+function selectGender(btn) {
+    document.querySelectorAll('.gender-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedGender = btn.dataset.value;
+}
+
+function selectSolar(btn) {
+    document.querySelectorAll('.solar-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedSolar = btn.dataset.value;
+}
+
+function selectTime(btn) {
+    document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedTime = btn.dataset.value;
+}
+
+// 생년월일 자동 하이픈 삽입
+document.getElementById('birthDateText').addEventListener('input', function(e) {
+    let v = this.value.replace(/[^0-9]/g, '');
+    if (v.length > 8) v = v.substring(0, 8);
+    if (v.length >= 5 && v.length <= 6) {
+        v = v.substring(0, 4) + '-' + v.substring(4);
+    } else if (v.length > 6) {
+        v = v.substring(0, 4) + '-' + v.substring(4, 6) + '-' + v.substring(6);
+    }
+    this.value = v;
+});
+
+function getBirthDate() {
+    const text = document.getElementById('birthDateText').value.trim();
+    if (!text) return '';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
+    const nums = text.replace(/[^0-9]/g, '');
+    if (nums.length === 8) {
+        return nums.substring(0, 4) + '-' + nums.substring(4, 6) + '-' + nums.substring(6, 8);
+    }
+    return text;
+}
+
+// ── 커스텀 달력 ──
+let calYear, calMonth, calSelectedDate = null;
+const calPopup = document.getElementById('calPopup');
+const calGrid = document.getElementById('calGrid');
+const calTitle = document.getElementById('calTitle');
+const today = new Date();
+calYear = today.getFullYear();
+calMonth = today.getMonth();
+
+document.getElementById('calToggleBtn').addEventListener('click', () => {
+    calPopup.classList.toggle('open');
+    if (calPopup.classList.contains('open')) renderCalendar();
+});
+
+// 바깥 클릭 시 닫기
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.cal-wrap')) calPopup.classList.remove('open');
+});
+
+document.getElementById('calPrevMonth').addEventListener('click', () => { calMonth--; if (calMonth < 0) { calMonth = 11; calYear--; } renderCalendar(); });
+document.getElementById('calNextMonth').addEventListener('click', () => { calMonth++; if (calMonth > 11) { calMonth = 0; calYear++; } renderCalendar(); });
+document.getElementById('calPrevYear').addEventListener('click', () => { calYear--; renderCalendar(); });
+document.getElementById('calNextYear').addEventListener('click', () => { calYear++; renderCalendar(); });
+
+function renderCalendar() {
+    const dows = ['일','월','화','수','목','금','토'];
+    calTitle.textContent = `${calYear}년 ${calMonth + 1}월`;
+
+    const firstDay = new Date(calYear, calMonth, 1).getDay();
+    const lastDate = new Date(calYear, calMonth + 1, 0).getDate();
+    const prevLastDate = new Date(calYear, calMonth, 0).getDate();
+
+    let html = dows.map((d, i) => `<div class="cal-dow${i === 0 ? ' sun' : i === 6 ? ' sat' : ''}">${d}</div>`).join('');
+
+    // 이전 달
+    for (let i = firstDay - 1; i >= 0; i--) {
+        html += `<button class="cal-day other" disabled>${prevLastDate - i}</button>`;
+    }
+
+    // 이번 달
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+    for (let d = 1; d <= lastDate; d++) {
+        const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        const dow = new Date(calYear, calMonth, d).getDay();
+        let cls = 'cal-day';
+        if (dow === 0) cls += ' sun';
+        if (dow === 6) cls += ' sat';
+        if (dateStr === todayStr) cls += ' today';
+        if (dateStr === calSelectedDate) cls += ' selected';
+        html += `<button class="${cls}" data-date="${dateStr}">${d}</button>`;
+    }
+
+    // 다음 달
+    const totalCells = firstDay + lastDate;
+    const remaining = (7 - totalCells % 7) % 7;
+    for (let i = 1; i <= remaining; i++) {
+        html += `<button class="cal-day other" disabled>${i}</button>`;
+    }
+
+    calGrid.innerHTML = html;
+
+    // 날짜 클릭 이벤트
+    calGrid.querySelectorAll('.cal-day:not(.other)').forEach(btn => {
+        btn.addEventListener('click', () => {
+            calSelectedDate = btn.dataset.date;
+            document.getElementById('birthDateText').value = calSelectedDate;
+            calPopup.classList.remove('open');
+            renderCalendar();
+        });
+    });
+}
+
+async function submitSignup() {
+    const birthDate = getBirthDate();
+    try {
+        const res = await fetch(BASE_PATH + '/api/signup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                birth_date: birthDate,
+                birth_time: selectedTime === '모름' ? '' : selectedTime,
+                gender: selectedGender,
+                solar_lunar: selectedSolar
+            })
+        });
+        const data = await res.json();
+        if (data.ok) {
+            location.href = BASE_PATH + '/';
+        }
+    } catch(e) {
+        alert('오류가 발생했습니다');
+    }
+}
+
+async function skipSignup() {
+    try {
+        await fetch(BASE_PATH + '/api/signup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({})
+        });
+    } catch(e) {}
+    location.href = BASE_PATH + '/';
+}
+
+// 기존 정보 로드 (수정 모드)
+async function loadExistingProfile() {
+    try {
+        const res = await fetch(BASE_PATH + '/api/auth/me');
+        const data = await res.json();
+        if (!data.ok) return;
+        const u = data.user;
+        if (u.birth_date) {
+            document.getElementById('birthDateText').value = u.birth_date;
+            calSelectedDate = u.birth_date;
+        }
+        if (u.birth_time) {
+            document.getElementById('birthTime').value = u.birth_time;
+            selectedTime = u.birth_time;
+        }
+        if (u.gender) {
+            selectedGender = u.gender;
+            document.querySelectorAll('.gender-btn').forEach(b => {
+                b.classList.toggle('active', b.dataset.value === u.gender);
+            });
+        }
+        if (u.solar_lunar) {
+            selectedSolar = u.solar_lunar;
+            document.querySelectorAll('.solar-btn').forEach(b => {
+                b.classList.toggle('active', b.dataset.value === u.solar_lunar);
+            });
+        }
+        if (u.registered) {
+            document.querySelector('.signup-title').textContent = '정보 수정';
+            document.querySelector('.signup-sub').textContent = '운세 정보를 수정할 수 있어요';
+            document.querySelector('.signup-submit').textContent = '저장 완료 ✅';
+            document.getElementById('signupSkip').style.display = 'none';
+            document.getElementById('signupCancelBtn').style.display = 'block';
+        }
+    } catch(e) {}
+}
+loadExistingProfile();
+</script>
+</body>
+</html>

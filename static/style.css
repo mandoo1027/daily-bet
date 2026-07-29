@@ -601,6 +601,7 @@ header p {
 }
 .setup-mode-btn:hover { border-color: var(--primary); background: #F5F3FF; }
 .setup-mode-btn:active { transform: scale(0.97); }
+.setup-mode-btn.disabled, .setup-mode-btn:disabled { opacity: 0.4; cursor: not-allowed; border-color: var(--gray-200); background: var(--gray-100); pointer-events: none; }
 .setup-mode-icon { font-size: 2rem; }
 .setup-mode-label { font-size: 1.1rem; font-weight: 700; color: var(--gray-800); }
 .setup-mode-desc { font-size: 0.75rem; color: var(--gray-400); }
@@ -662,6 +663,13 @@ header p {
 }
 .setup-bet-chip.active { border-color: var(--primary); color: var(--primary); background: #F5F3FF; }
 .setup-bet-chip:hover { border-color: var(--primary); }
+.setup-speed-chip {
+    padding: 8px 14px; border: 2px solid var(--gray-200); border-radius: 10px;
+    background: #fff; color: var(--gray-600); font-size: 0.85rem;
+    cursor: pointer; transition: all 0.2s; font-weight: 500;
+}
+.setup-speed-chip.active { border-color: var(--primary); color: var(--primary); background: #F5F3FF; }
+.setup-speed-chip:hover { border-color: var(--primary); }
 
 /* Start button */
 .setup-start-btn {

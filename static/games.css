@@ -103,7 +103,8 @@
     border-radius: 24px;
     padding: 40px 48px;
     text-align: center;
-    z-index: 1;
+    z-index: 10;
+    position: relative;
     animation: resultPop .4s cubic-bezier(.2, .8, .2, 1.2);
 }
 @keyframes resultPop {
@@ -670,7 +671,7 @@
     width: 4px;
     height: 100%;
     position: absolute;
-    right: 30px;
+    left: 85%;
     top: 0;
     background: repeating-linear-gradient(180deg, #000 0, #000 4px, #fff 4px, #fff 8px);
 }
@@ -741,8 +742,6 @@
     background: white;
     border-radius: 12px;
     box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-    max-height: 200px;
-    overflow-y: auto;
 }
 
 /* 모바일 가로 모드 */
@@ -755,12 +754,12 @@
     .race-runner { font-size: 0.7rem; }
     .race-runner.race-svg-runner { width: 20px; height: 20px; }
     .race-svg-runner svg { width: 20px; height: 20px; }
-    .race-finish { right: 6px; height: 14px; width: 2px; }
+    .race-finish { left: 85%; height: 14px; width: 2px; }
     .race-boost::after { font-size: 0.3rem; }
     .race-obstacle { font-size: 0.3rem !important; }
     .race-start-btn { padding: 4px 10px; font-size: 0.65rem; margin-bottom: 2px; }
-    .race-ranking { max-height: 80px; padding: 3px; margin-top: 2px; }
-    .race-ranking div { font-size: 0.5rem !important; padding: 1px 3px !important; margin: 1px 0 !important; }
+    .race-ranking { padding: 6px; margin-top: 4px; }
+    .race-ranking div { font-size: 0.75rem !important; padding: 3px 6px !important; margin: 2px 0 !important; }
 }
 /* 모바일 세로 모드 */
 @media (max-width: 600px) and (min-height: 501px) {
@@ -770,7 +769,7 @@
     .race-track-bg { height: 55px; }
     .race-runner.race-svg-runner { width: 50px; height: 50px; }
     .race-svg-runner svg { width: 50px; height: 50px; }
-    .race-finish { right: 15px; height: 35px; }
+    .race-finish { left: 85%; height: 35px; }
 }
 
 /* ══════════════════════════════════════

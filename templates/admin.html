@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Bet - Admin</title>
+    <script src="https://cdn.jsdelivr.net/npm/ag-grid-community/dist/ag-grid-community.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community/styles/ag-grid.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community/styles/ag-theme-alpine.css">
+    <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f3f4f6;color:#111827;min-height:100vh;display:flex;}
+
+    /* 사이드 메뉴 */
+    .sidebar{width:220px;background:#1e1b4b;color:#fff;min-height:100vh;padding:20px 0;flex-shrink:0;display:flex;flex-direction:column;}
+    .sidebar-logo{padding:0 20px 20px;font-size:1.1rem;font-weight:900;border-bottom:1px solid rgba(255,255,255,0.1);margin-bottom:12px;}
+    .sidebar-menu{list-style:none;flex:1;}
+    .sidebar-menu li{}
+    .sidebar-item{display:flex;align-items:center;gap:10px;padding:12px 20px;color:rgba(255,255,255,0.6);text-decoration:none;font-size:0.85rem;font-weight:600;cursor:pointer;transition:all 0.2s;border:none;background:none;width:100%;text-align:left;font-family:inherit;}
+    .sidebar-item:hover,.sidebar-item.active{background:rgba(255,255,255,0.1);color:#fff;}
+    .sidebar-item .icon{font-size:1rem;width:22px;text-align:center;}
+    .sidebar-bottom{padding:12px 20px;border-top:1px solid rgba(255,255,255,0.1);}
+    .sidebar-bottom a{color:rgba(255,255,255,0.5);font-size:0.75rem;text-decoration:none;}
+    .sidebar-bottom a:hover{color:#fff;}
+
+    /* 메인 콘텐츠 */
+    .main{flex:1;overflow-y:auto;max-height:100vh;}
+    .main-header{background:#fff;border-bottom:1px solid #e5e7eb;padding:16px 24px;font-size:1rem;font-weight:800;color:#374151;position:sticky;top:0;z-index:5;}
+    .main-body{padding:20px 24px;}
+
+    /* 통계 카드 */
+    .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:24px;}
+    .stat-card{background:#fff;border-radius:12px;padding:16px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,0.06);transition:transform 0.2s,box-shadow 0.2s;}
+    .stat-card[onclick]:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,0.1);}
+    .stat-num{font-size:1.6rem;font-weight:900;color:#4f46e5;}
+    .stat-label{font-size:0.72rem;color:#6b7280;margin-top:4px;}
+
+    /* 카드 */
+    .card{background:#fff;border-radius:12px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,0.06);margin-bottom:16px;}
+    .card h2{font-size:0.95rem;font-weight:800;margin-bottom:14px;color:#374151;}
+
+    /* 검색 */
+    .search-bar{margin-bottom:14px;}
+    .search-bar input{width:100%;padding:10px 14px;border:2px solid #e5e7eb;border-radius:8px;font-size:0.85rem;font-family:inherit;}
+    .search-bar input:focus{outline:none;border-color:#4f46e5;}
+
+    /* 테이블 */
+    table{width:100%;border-collapse:collapse;font-size:0.78rem;}
+    th{background:#f9fafb;padding:10px 8px;text-align:left;font-weight:700;color:#6b7280;border-bottom:2px solid #e5e7eb;white-space:nowrap;}
+    td{padding:10px 8px;border-bottom:1px solid #f3f4f6;vertical-align:middle;}
+    tr:hover td{background:#f9fafb;}
+    .clickable-row{cursor:pointer;}
+    .user-info{display:flex;align-items:center;gap:10px;}
+    .user-img{width:32px;height:32px;border-radius:50%;object-fit:cover;border:2px solid #e5e7eb;}
+    .user-img-none{width:32px;height:32px;border-radius:50%;background:#e5e7eb;display:flex;align-items:center;justify-content:center;font-size:0.8rem;}
+    .user-name{font-weight:700;color:#111827;}
+    .badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:600;}
+    .badge-ok{background:#dcfce7;color:#16a34a;}
+    .badge-no{background:#fef3c7;color:#d97706;}
+    .badge-m{background:#dbeafe;color:#2563eb;}
+    .badge-f{background:#fce7f3;color:#db2777;}
+    .detail{font-size:0.7rem;color:#9ca3af;}
+    .table-wrap{overflow-x:auto;}
+
+    /* 회원 상세 */
+    .profile-detail{display:none;}
+    .profile-back{border:none;background:none;color:#4f46e5;font-weight:700;font-size:0.85rem;cursor:pointer;font-family:inherit;margin-bottom:16px;}
+    .profile-card{display:flex;gap:20px;align-items:flex-start;margin-bottom:20px;}
+    .profile-avatar{width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid #4f46e5;flex-shrink:0;}
+    .profile-avatar-none{width:80px;height:80px;border-radius:50%;background:#e5e7eb;display:flex;align-items:center;justify-content:center;font-size:2rem;flex-shrink:0;}
+    .profile-meta{flex:1;}
+    .profile-meta h3{font-size:1.2rem;font-weight:900;margin-bottom:4px;}
+    .profile-meta .sub{font-size:0.75rem;color:#9ca3af;}
+    .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;}
+    .info-item{background:#f9fafb;border-radius:10px;padding:14px;}
+    .info-item .label{font-size:0.7rem;color:#9ca3af;font-weight:600;margin-bottom:4px;}
+    .info-item .value{font-size:0.9rem;font-weight:700;color:#374151;}
+
+    /* 사이드바 토글 */
+    .sidebar{transition:width 0.3s,min-width 0.3s;overflow:hidden;}
+    .sidebar-logo{display:flex;align-items:center;justify-content:space-between;}
+    .sidebar-logo-text{white-space:nowrap;overflow:hidden;}
+    .sidebar-toggle{background:none;border:none;color:rgba(255,255,255,0.5);font-size:1.1rem;cursor:pointer;padding:4px 6px;border-radius:6px;transition:all 0.2s;flex-shrink:0;}
+    .sidebar-toggle:hover{color:#fff;background:rgba(255,255,255,0.1);}
+    .sidebar-item .text{white-space:nowrap;overflow:hidden;}
+    body.sidebar-collapsed .sidebar{width:60px;min-width:60px;}
+    body.sidebar-collapsed .sidebar-logo-text{display:none;}
+    body.sidebar-collapsed .sidebar-item .text{display:none;}
+    body.sidebar-collapsed .sidebar-item{justify-content:center;padding:12px 0;}
+    body.sidebar-collapsed .sidebar-item .icon{margin:0;}
+    body.sidebar-collapsed .sidebar-bottom{text-align:center;padding:12px 8px;}
+    body.sidebar-collapsed .sidebar-bottom a{font-size:0.6rem;}
+
+    /* AG Grid 커스텀 */
+    .ag-theme-alpine{--ag-font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;--ag-font-size:13px;--ag-grid-size:6px;--ag-row-height:44px;--ag-header-height:40px;--ag-header-background-color:#f9fafb;--ag-header-foreground-color:#6b7280;--ag-header-column-separator-color:transparent;--ag-border-color:#f3f4f6;--ag-row-border-color:#f9fafb;--ag-odd-row-background-color:#fff;--ag-background-color:#fff;--ag-foreground-color:#374151;--ag-selected-row-background-color:#eef2ff;--ag-range-selection-background-color:#eef2ff;--ag-alpine-active-color:#4f46e5;--ag-cell-horizontal-padding:12px;--ag-borders:none;--ag-row-hover-color:#f5f3ff;--ag-border-radius:0;}
+    .ag-theme-alpine .ag-header-cell-label{font-weight:700;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.5px;}
+    .ag-theme-alpine .ag-cell{display:flex;align-items:center;}
+    .ag-theme-alpine .ag-row{border-bottom:1px solid #f3f4f6!important;transition:background 0.15s;}
+    .ag-theme-alpine .ag-paging-panel{border-top:1px solid #f3f4f6;font-size:0.75rem;color:#9ca3af;}
+    .ag-theme-alpine .ag-root-wrapper{border:none!important;border-radius:8px;overflow:hidden;}
+    .ag-theme-alpine input[class^=ag-]{border-radius:6px;border:1px solid #e5e7eb;padding:4px 8px;font-size:0.78rem;}
+
+    /* 모바일 메뉴 */
+    .mobile-menu-btn{display:none;position:fixed;top:12px;left:12px;z-index:20;width:40px;height:40px;border-radius:10px;border:none;background:#1e1b4b;color:#fff;font-size:1.2rem;cursor:pointer;align-items:center;justify-content:center;}
+    .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:14;}
+    @media(max-width:768px){
+        .sidebar{position:fixed;left:-220px;top:0;z-index:15;height:100vh;width:220px!important;min-width:220px!important;}
+        .sidebar.open{left:0;}
+        .sidebar-overlay.open{display:block;}
+        .mobile-menu-btn{display:flex;}
+        .sidebar-toggle{display:none;}
+        body.sidebar-collapsed .sidebar{width:220px!important;min-width:220px!important;}
+        body.sidebar-collapsed .sidebar-logo-text{display:inline;}
+        body.sidebar-collapsed .sidebar-item .text{display:inline;}
+        body.sidebar-collapsed .sidebar-item{justify-content:flex-start;padding:12px 20px;}
+        body.sidebar-collapsed .sidebar-bottom{text-align:left;padding:12px 20px;}
+        .main{width:100%;}
+        .main-body{padding:16px;}
+        .main-header{padding-left:56px;}
+        .stats-grid{grid-template-columns:repeat(2,1fr);}
+        .info-grid{grid-template-columns:1fr;}
+        .profile-card{flex-direction:column;align-items:center;text-align:center;}
+    }
+    </style>
+</head>
+<body>
+
+<button class="mobile-menu-btn" onclick="toggleMobile()">☰</button>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleMobile()"></div>
+
+<div class="sidebar">
+    <div class="sidebar-logo">
+        <span class="sidebar-logo-text">🎲 Daily Bet Admin</span>
+        <button class="sidebar-toggle" onclick="toggleSidebar()">«</button>
+    </div>
+    <ul class="sidebar-menu">
+        <li><button class="sidebar-item active" onclick="showPage('dashboard')" data-page="dashboard"><span class="icon">📊</span><span class="text"> 대시보드</span></button></li>
+        <li><button class="sidebar-item" onclick="showPage('users')" data-page="users"><span class="icon">👥</span><span class="text"> 회원 관리</span></button></li>
+        <li><button class="sidebar-item" onclick="showPage('groups')" data-page="groups"><span class="icon">📁</span><span class="text"> 그룹 관리</span></button></li>
+    </ul>
+    <div class="sidebar-bottom">
+        <a href="{{ prefix }}/">← 사이트로 돌아가기</a>
+    </div>
+</div>
+
+<div class="main">
+    <div class="main-header" id="pageTitle">📊 대시보드</div>
+    <div class="main-body">
+        <!-- 대시보드 -->
+        <div id="pageDashboard">
+            <div class="stats-grid" id="statsGrid"></div>
+            <div class="card">
+                <h2>최근 가입 회원</h2>
+                <div id="recentUsersGrid" class="ag-theme-alpine" style="height:250px;width:100%;"></div>
+            </div>
+        </div>
+
+        <!-- 그룹 관리 -->
+        <div id="pageGroups" style="display:none;">
+            <div class="card">
+                <h2>📁 그룹 목록</h2>
+                <div id="groupsGrid" class="ag-theme-alpine" style="height:500px;width:100%;"></div>
+            </div>
+        </div>
+
+        <!-- 회원 관리 -->
+        <div id="pageUsers" style="display:none;">
+            <!-- 목록 -->
+            <div id="userListView">
+                <div class="card">
+                    <h2>👥 회원 목록</h2>
+                    <div id="usersGrid" class="ag-theme-alpine" style="height:500px;width:100%;"></div>
+                </div>
+            </div>
+            <!-- 상세 -->
+            <div id="userDetailView" style="display:none;">
+                <button class="profile-back" onclick="backToList()">← 회원 목록으로</button>
+                <div id="userDetailContent"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const BASE='{{ prefix }}';
+let allUsers=[];
+
+function toggleSidebar(){
+    document.body.classList.toggle('sidebar-collapsed');
+    const btn=document.querySelector('.sidebar-toggle');
+    btn.innerHTML=document.body.classList.contains('sidebar-collapsed')?'»':'«';
+}
+
+function toggleMobile(){
+    document.querySelector('.sidebar').classList.toggle('open');
+    document.getElementById('sidebarOverlay').classList.toggle('open');
+}
+const timeMap={'23:30':'자시','01:30':'축시','03:30':'인시','05:30':'묘시','07:30':'진시','09:30':'사시','11:30':'오시','13:30':'미시','15:30':'신시','17:30':'유시','19:30':'술시','21:30':'해시'};
+
+function showPage(page){
+    document.querySelectorAll('.sidebar-item').forEach(i=>i.classList.remove('active'));
+    document.querySelector(`.sidebar-item[data-page="${page}"]`).classList.add('active');
+    document.getElementById('pageDashboard').style.display=page==='dashboard'?'block':'none';
+    document.getElementById('pageUsers').style.display=page==='users'?'block':'none';
+    document.getElementById('pageGroups').style.display=page==='groups'?'block':'none';
+    var titles={dashboard:'📊 대시보드',users:'👥 회원 관리',groups:'📁 그룹 관리'};
+    document.getElementById('pageTitle').textContent=titles[page]||page;
+    if(page==='users'){loadUsers();backToList();}
+    if(page==='groups'){loadGroups();}
+    document.querySelector('.sidebar').classList.remove('open');
+    document.getElementById('sidebarOverlay').classList.remove('open');
+}
+
+async function loadStats(){
+    const r=await fetch(BASE+'/api/admin/stats');
+    const d=await r.json();
+    document.getElementById('statsGrid').innerHTML=`
+        <div class="stat-card" onclick="showPage('users')" style="cursor:pointer;"><div class="stat-num">${d.total_users}</div><div class="stat-label">전체 회원</div></div>
+        <div class="stat-card" onclick="showPage('users')" style="cursor:pointer;"><div class="stat-num">${d.registered_users}</div><div class="stat-label">가입 완료</div></div>
+        <div class="stat-card"><div class="stat-num">${d.total_draws}</div><div class="stat-label">총 게임 수</div></div>
+        <div class="stat-card"><div class="stat-num">${d.today_draws}</div><div class="stat-label">오늘 게임</div></div>
+        <div class="stat-card" onclick="showPage('groups')" style="cursor:pointer;"><div class="stat-num">${d.total_groups}</div><div class="stat-label">그룹 수</div></div>
+    `;
+}
+
+let recentGrid, usersGrid, groupsGridApi;
+
+async function loadRecentUsers(){
+    const r=await fetch(BASE+'/api/admin/users');
+    allUsers=await r.json();
+
+    const colDefs=[
+        {headerName:'회원',field:'nickname',flex:1,cellRenderer:p=>{
+            const img=p.data.profile_image?`<img src="${p.data.profile_image}" style="width:24px;height:24px;border-radius:50%;object-fit:cover;margin-right:8px;vertical-align:middle">`:'';
+            return img+(p.value||'-');
+        }},
+        {headerName:'가입일',field:'created_at',flex:0.8,valueFormatter:p=>(p.value||'').substring(0,10)},
+        {headerName:'상태',field:'registered',flex:0.5,cellRenderer:p=>p.value?'<span class="badge badge-ok">완료</span>':'<span class="badge badge-no">미완료</span>'},
+    ];
+    recentGrid=agGrid.createGrid(document.getElementById('recentUsersGrid'),{
+        rowData:allUsers.slice(0,5),columnDefs:colDefs,
+        defaultColDef:{sortable:true,resizable:true},
+        domLayout:'autoHeight',
+        onRowClicked:p=>{showPage('users');setTimeout(()=>showUserDetail(p.data.id),100);},
+        
+    });
+}
+
+async function loadUsers(){
+    if(allUsers.length===0){
+        const r=await fetch(BASE+'/api/admin/users');
+        allUsers=await r.json();
+    }
+    const colDefs=[
+        {headerName:'회원',field:'nickname',flex:1.5,filter:true,cellRenderer:p=>{
+            const img=p.data.profile_image?`<img src="${p.data.profile_image}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;margin-right:8px;vertical-align:middle">`:'';
+            return img+'<b>'+(p.value||'-')+'</b> <span style="color:#9ca3af;font-size:0.7rem;">ID:'+p.data.id+'</span>';
+        }},
+        {headerName:'생년월일',field:'birth_date',flex:1,filter:true,valueFormatter:p=>p.value||'-'},
+        {headerName:'성별',field:'gender',flex:0.5,filter:true,cellRenderer:p=>{
+            if(!p.value)return'-';
+            return p.value==='남'?'<span class="badge badge-m">남</span>':'<span class="badge badge-f">여</span>';
+        }},
+        {headerName:'가입',field:'registered',flex:0.5,cellRenderer:p=>p.value?'<span class="badge badge-ok">완료</span>':'<span class="badge badge-no">미완료</span>'},
+        {headerName:'게임수',field:'draw_count',flex:0.5,type:'rightAligned'},
+        {headerName:'가입일',field:'created_at',flex:0.8,valueFormatter:p=>(p.value||'').substring(0,10)},
+    ];
+    if(usersGrid){usersGrid.setGridOption('rowData',allUsers);return;}
+    usersGrid=agGrid.createGrid(document.getElementById('usersGrid'),{
+        rowData:allUsers,columnDefs:colDefs,
+        defaultColDef:{sortable:true,resizable:true,filter:true},
+        pagination:true,paginationPageSize:20,
+        onRowClicked:p=>showUserDetail(p.data.id),
+        
+    });
+}
+
+async function showUserDetail(userId){
+    const u=allUsers.find(x=>x.id===userId);
+    if(!u)return;
+    document.getElementById('userListView').style.display='none';
+    document.getElementById('userDetailView').style.display='block';
+
+    const img=u.profile_image?`<img class="profile-avatar" src="${u.profile_image}">`:'<div class="profile-avatar-none">👤</div>';
+    const timeStr=u.birth_time?(timeMap[u.birth_time]||u.birth_time):'-';
+    const genderStr=u.gender?(u.gender==='남'?'👨 남자':'👩 여자'):'-';
+    const solarStr=u.solar_lunar==='lunar'?'🌙 음력':'☀️ 양력';
+    const regStr=u.registered?'✅ 완료':'⏳ 미완료';
+
+    // 그룹, 멤버 로드
+    let groupsHTML='<div class="detail">로딩 중...</div>';
+    let membersHTML='<div class="detail">로딩 중...</div>';
+
+    document.getElementById('userDetailContent').innerHTML=`
+        <div class="card">
+            <div class="profile-card">
+                ${img}
+                <div class="profile-meta">
+                    <h3>${u.nickname||'이름 없음'}</h3>
+                    <div class="sub">카카오 ID: ${u.kakao_id||'-'} · 내부 ID: ${u.id}</div>
+                </div>
+            </div>
+            <div class="info-grid">
+                <div class="info-item"><div class="label">생년월일</div><div class="value">${u.birth_date||'-'}</div></div>
+                <div class="info-item"><div class="label">양력/음력</div><div class="value">${u.birth_date?solarStr:'-'}</div></div>
+                <div class="info-item"><div class="label">태어난 시간</div><div class="value">${timeStr}</div></div>
+                <div class="info-item"><div class="label">성별</div><div class="value">${genderStr}</div></div>
+                <div class="info-item"><div class="label">가입 상태</div><div class="value">${regStr}</div></div>
+                <div class="info-item"><div class="label">가입일</div><div class="value">${(u.created_at||'').substring(0,16)}</div></div>
+                <div class="info-item"><div class="label">총 게임 수</div><div class="value" style="color:#4f46e5;">${u.draw_count}회</div></div>
+                <div class="info-item"><div class="label">등록 멤버 수</div><div class="value">${u.member_count}명</div></div>
+            </div>
+        </div>
+        <div class="card"><h2>📁 그룹</h2><div id="detailGroups">${groupsHTML}</div></div>
+        <div class="card"><h2>👤 등록 멤버</h2><div id="detailMembers">${membersHTML}</div></div>
+    `;
+
+    // 그룹 로드
+    try{
+        const gr=await fetch(BASE+'/api/admin/user/'+userId+'/groups');
+        const groups=await gr.json();
+        const el=document.getElementById('detailGroups');
+        if(!groups.length){el.innerHTML='<div class="detail" style="padding:10px;text-align:center;">그룹 없음</div>';}
+        else{el.innerHTML=groups.map(g=>{
+            const names=g.member_names?g.member_names.split(',').map(n=>n.trim()).filter(n=>n):[];
+            return `<div style="padding:10px 0;border-bottom:1px solid #f3f4f6;">
+                <div style="font-weight:700;font-size:0.85rem;margin-bottom:4px;">${g.name} <span class="detail">(${names.length}명)</span></div>
+                <div style="display:flex;flex-wrap:wrap;gap:4px;">${names.map(n=>`<span style="background:#eef2ff;color:#4f46e5;padding:2px 8px;border-radius:10px;font-size:0.7rem;font-weight:600;">${n}</span>`).join('')}</div>
+            </div>`;
+        }).join('');}
+    }catch(e){document.getElementById('detailGroups').innerHTML='<div class="detail">로드 실패</div>';}
+
+    // 멤버 로드
+    try{
+        const mr=await fetch(BASE+'/api/admin/user/'+userId+'/members');
+        const members=await mr.json();
+        const el=document.getElementById('detailMembers');
+        if(!members.length){el.innerHTML='<div class="detail" style="padding:10px;text-align:center;">멤버 없음</div>';}
+        else{el.innerHTML='<div style="display:flex;flex-wrap:wrap;gap:6px;">'+members.map(m=>{
+            const color=m.active?'#dcfce7;color:#16a34a':'#f3f4f6;color:#9ca3af';
+            return `<span style="background:${color};padding:4px 12px;border-radius:10px;font-size:0.78rem;font-weight:600;">${m.name}${m.active?'':' (비활성)'}</span>`;
+        }).join('')+'</div>';}
+    }catch(e){document.getElementById('detailMembers').innerHTML='<div class="detail">로드 실패</div>';}
+}
+
+function backToList(){
+    document.getElementById('userListView').style.display='block';
+    document.getElementById('userDetailView').style.display='none';
+}
+
+// 그룹 관리
+async function loadGroups(){
+    const r=await fetch(BASE+'/api/admin/groups');
+    const groups=await r.json();
+    const colDefs=[
+        {headerName:'그룹명',field:'name',flex:1,filter:true,cellStyle:{fontWeight:700}},
+        {headerName:'소유자',field:'user_nickname',flex:0.8,filter:true,valueFormatter:p=>p.value||'비회원'},
+        {headerName:'멤버',field:'member_names',flex:2,filter:true,autoHeight:true,cellRenderer:p=>{
+            const names=p.value?p.value.split(',').map(n=>n.trim()).filter(n=>n):[];
+            if(!names.length)return'-';
+            return names.map(n=>'<span style="background:#eef2ff;color:#4f46e5;padding:2px 8px;border-radius:10px;font-size:0.68rem;font-weight:600;display:inline-block;margin:1px;">'+n+'</span>').join('');
+        }},
+        {headerName:'멤버수',valueGetter:p=>{const n=p.data.member_names;return n?n.split(',').filter(x=>x.trim()).length:0;},flex:0.5,type:'rightAligned'},
+        {headerName:'생성일',field:'created_at',flex:0.8,valueFormatter:p=>(p.value||'').substring(0,10)},
+    ];
+    if(groupsGridApi){groupsGridApi.setGridOption('rowData',groups);return;}
+    groupsGridApi=agGrid.createGrid(document.getElementById('groupsGrid'),{
+        rowData:groups,columnDefs:colDefs,
+        defaultColDef:{sortable:true,resizable:true,filter:true},
+        pagination:true,paginationPageSize:20,
+        
+    });
+}
+
+loadStats();
+loadRecentUsers();
+</script>
+</body>
+</html>

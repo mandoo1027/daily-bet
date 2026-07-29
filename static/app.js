@@ -1,3 +1,29 @@
+// ── Custom Confirm ──
+function customConfirm(msg, options = {}) {
+    return new Promise((resolve) => {
+        const overlay = document.getElementById('customModalOverlay');
+        const msgEl = document.getElementById('customModalMsg');
+        const iconEl = document.getElementById('customModalIcon');
+        const okBtn = document.getElementById('customModalOk');
+        const cancelBtn = document.getElementById('customModalCancel');
+
+        msgEl.textContent = msg;
+        iconEl.textContent = options.icon || '⚠️';
+        okBtn.textContent = options.okText || '확인';
+        okBtn.className = 'custom-modal-ok' + (options.danger ? ' danger' : '');
+        cancelBtn.textContent = options.cancelText || '취소';
+        overlay.classList.add('active');
+
+        function cleanup() {
+            overlay.classList.remove('active');
+            okBtn.onclick = null;
+            cancelBtn.onclick = null;
+        }
+        okBtn.onclick = () => { cleanup(); resolve(true); };
+        cancelBtn.onclick = () => { cleanup(); resolve(false); };
+    });
+}
+
 // ── State ──
 let currentBet = '커피';
 let statsYear, statsMonth;
@@ -47,28 +73,11 @@ document.querySelectorAll('.tab').forEach(tab => {
         tab.classList.add('active');
         document.getElementById(tab.dataset.tab).classList.add('active');
         const target = tab.dataset.tab;
-        if (target === 'members') loadMembers();
+        if (target === 'members') { loadMembers(); loadGroups(); }
         if (target === 'stats') loadStats();
         if (target === 'history') loadHistory();
         if (target === 'draw') loadToday();
     });
-});
-
-// ── Bet selection ──
-document.querySelectorAll('.bet-chip').forEach(chip => {
-    chip.addEventListener('click', () => {
-        document.querySelectorAll('.bet-chip').forEach(c => c.classList.remove('active'));
-        chip.classList.add('active');
-        currentBet = chip.dataset.bet;
-        document.getElementById('betCustom').value = '';
-    });
-});
-
-document.getElementById('betCustom').addEventListener('input', (e) => {
-    if (e.target.value.trim()) {
-        document.querySelectorAll('.bet-chip').forEach(c => c.classList.remove('active'));
-        currentBet = e.target.value.trim();
-    }
 });
 
 // ── Game Selection ──
@@ -83,6 +92,7 @@ document.querySelectorAll('.game-card').forEach(card => {
 let setupGameType = null;
 let setupMode = null;
 let setupMembers = [];
+window.raceSpeed = 'normal'; // slow, normal, fast
 
 function showGameSetup(gameType) {
     setupGameType = gameType;
@@ -103,10 +113,10 @@ function showGameSetup(gameType) {
                         <span class="setup-mode-label">연습</span>
                         <span class="setup-mode-desc">기록되지 않아요</span>
                     </button>
-                    <button class="setup-mode-btn" data-mode="real">
+                    <button class="setup-mode-btn${window.isGuest ? ' disabled' : ''}" data-mode="real" ${window.isGuest ? 'disabled' : ''}>
                         <span class="setup-mode-icon">🔴</span>
                         <span class="setup-mode-label">실전</span>
-                        <span class="setup-mode-desc">결과가 기록돼요</span>
+                        <span class="setup-mode-desc">${window.isGuest ? '로그인 필요' : '결과가 기록돼요'}</span>
                     </button>
                 </div>
             </div>
@@ -127,6 +137,16 @@ function showGameSetup(gameType) {
                         <button class="setup-bet-chip" data-bet="간식">🍰 간식</button>
                     </div>
                 </div>
+                ${gameType === 'race' ? `
+                <div class="setup-bet-section">
+                    <h4 class="setup-heading-sm">🏇 경주 속도</h4>
+                    <div class="setup-bet-chips">
+                        <button class="setup-speed-chip" data-speed="slow">🐢 느림</button>
+                        <button class="setup-speed-chip active" data-speed="normal">🐎 보통</button>
+                        <button class="setup-speed-chip" data-speed="fast">🚀 빠름</button>
+                    </div>
+                </div>
+                ` : ''}
                 <button class="setup-start-btn" id="setupStartBtn" disabled>게임 시작</button>
             </div>
         </div>
@@ -175,15 +195,19 @@ function showGameSetup(gameType) {
         });
     });
 
+    // Speed chips (경마 레이스)
+    window.raceSpeed = 'normal';
+    overlay.querySelectorAll('.setup-speed-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            overlay.querySelectorAll('.setup-speed-chip').forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
+            window.raceSpeed = chip.dataset.speed;
+        });
+    });
+
     // Start game
     document.getElementById('setupStartBtn').addEventListener('click', () => {
         if (setupMembers.length < 2) { toast('최소 2명 이상 필요합니다'); return; }
-        // Set mode radio for compatibility
-        const realRadio = document.querySelector('input[name="gameMode"][value="real"]');
-        const practiceRadio = document.querySelector('input[name="gameMode"][value="practice"]');
-        if (setupMode === 'real' && realRadio) realRadio.checked = true;
-        if (setupMode === 'practice' && practiceRadio) practiceRadio.checked = true;
-
         overlay.classList.remove('active');
         const betName = currentBet;
         // 멤버 순서 랜덤 셔플
@@ -202,22 +226,62 @@ function showGameSetup(gameType) {
 async function loadSavedMembers() {
     try {
         const members = await api('/api/members');
+        const groups = await api('/api/groups');
         const container = document.getElementById('setupSavedMembers');
-        if (members.length === 0) { container.innerHTML = ''; return; }
-        container.innerHTML = `
-            <div class="setup-saved-title">등록된 멤버 (클릭하여 추가)</div>
-            <div class="setup-saved-chips">
-                ${members.map(m => `<button class="setup-saved-chip" data-name="${esc(m.name)}">${esc(m.name)}</button>`).join('')}
-                <button class="setup-saved-chip setup-all-chip" data-action="all">전체 추가</button>
-            </div>
-        `;
-        container.querySelectorAll('.setup-saved-chip').forEach(chip => {
+
+        let html = '';
+
+        // 그룹 불러오기
+        if (groups.length > 0) {
+            html += `
+                <div class="setup-saved-title">📁 그룹 불러오기</div>
+                <div class="setup-saved-chips">
+                    ${groups.map(g => {
+                        const names = g.member_names ? g.member_names.split(',').filter(n => n.trim()) : [];
+                        return names.length ? `<button class="setup-saved-chip setup-group-chip" data-group-id="${g.id}">${esc(g.name)} (${names.length}명)</button>` : '';
+                    }).join('')}
+                </div>
+            `;
+        }
+
+        // 등록된 멤버
+        if (members.length > 0) {
+            html += `
+                <div class="setup-saved-title">등록된 멤버 (클릭하여 추가)</div>
+                <div class="setup-saved-chips">
+                    ${members.map(m => `<button class="setup-saved-chip" data-name="${esc(m.name)}">${esc(m.name)}</button>`).join('')}
+                    <button class="setup-saved-chip setup-all-chip" data-action="all">전체 추가</button>
+                </div>
+            `;
+        }
+
+        container.innerHTML = html;
+
+        // 그룹 클릭 이벤트
+        container.querySelectorAll('.setup-group-chip').forEach(chip => {
+            chip.addEventListener('click', async () => {
+                const groupId = chip.dataset.groupId;
+                try {
+                    const groups = await api('/api/groups');
+                    const group = groups.find(g => g.id == groupId);
+                    if (group && group.member_names) {
+                        const names = group.member_names.split(',').map(n => n.trim()).filter(n => n);
+                        setupMembers = [...names];
+                        renderSetupMembers();
+                        toast(`'${group.name}' 그룹 멤버 적용!`);
+                    }
+                } catch (e) { toast('그룹 불러오기 실패'); }
+            });
+        });
+
+        // 멤버 클릭 이벤트
+        container.querySelectorAll('.setup-saved-chip:not(.setup-group-chip)').forEach(chip => {
             chip.addEventListener('click', () => {
                 if (chip.dataset.action === 'all') {
                     members.forEach(m => {
                         if (!setupMembers.includes(m.name)) setupMembers.push(m.name);
                     });
-                } else {
+                } else if (chip.dataset.name) {
                     const name = chip.dataset.name;
                     if (!setupMembers.includes(name)) setupMembers.push(name);
                     else { toast('이미 추가된 멤버입니다'); return; }
@@ -295,17 +359,11 @@ document.getElementById('gameBack').addEventListener('click', () => {
     document.getElementById('gameContainer').innerHTML = '';
     const footer = document.getElementById('gameFooter');
     if (footer) footer.style.display = 'none';
-});
-
-document.getElementById('gameRetryBtn').addEventListener('click', () => {
-    if (currentGameType && currentGamePlayers) {
-        startGame(currentGameType, shuffle([...currentGamePlayers]), currentGameBet);
-    }
+    if (typeof stopRaceBgm === 'function') stopRaceBgm();
 });
 
 function isRealMode() {
-    const radio = document.querySelector('input[name="gameMode"]:checked');
-    return radio && radio.value === 'real';
+    return setupMode === 'real';
 }
 
 async function onGameComplete(winner, betName) {
@@ -373,6 +431,98 @@ document.getElementById('resultCloseBtn').addEventListener('click', () => {
     document.getElementById('resultOverlay').classList.remove('active');
     stopConfetti();
 });
+
+// 게임 화면 이미지 저장 (모바일 대응)
+async function saveGameImage() {
+    const btn = document.querySelector('.game-save-btn');
+    const origText = btn.textContent;
+    btn.textContent = '캡처 중...';
+    btn.disabled = true;
+    try {
+        const gameArea = document.getElementById('gameContainer');
+        const footer = document.getElementById('gameFooter');
+        footer.style.display = 'none';
+        const canvas = await html2canvas(gameArea, {
+            backgroundColor: '#1a1a2e',
+            scale: 2,
+            useCORS: true,
+            allowTaint: true,
+        });
+        footer.style.display = '';
+
+        const now = new Date();
+        const dateStr = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
+        const fileName = `daily-bet-game_${dateStr}.png`;
+
+        const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+
+        // 1순위: Web Share API (모바일 최적)
+        if (navigator.share) {
+            try {
+                const file = new File([blob], fileName, { type: 'image/png' });
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    await navigator.share({ files: [file], title: 'Daily Bet 결과' });
+                    toast('공유 완료!');
+                    return;
+                }
+            } catch(e) {
+                if (e.name === 'AbortError') return;
+            }
+        }
+
+        // 2순위: blob URL로 다운로드
+        const blobUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 3000);
+        toast('이미지 저장 완료!');
+    } catch(e) {
+        console.error('캡처 오류:', e);
+        toast('이미지 저장 실패');
+    } finally {
+        btn.textContent = origText;
+        btn.disabled = false;
+    }
+}
+
+// 결과 이미지 저장
+async function saveResultImage() {
+    const btn = document.getElementById('resultSaveBtn');
+    const origText = btn.textContent;
+    btn.textContent = '캡처 중...';
+    btn.disabled = true;
+    try {
+        const content = document.querySelector('.result-content');
+        // 버튼 영역 숨기고 캡처
+        const buttons = content.querySelector('.result-buttons');
+        buttons.style.display = 'none';
+        const canvas = await html2canvas(content, {
+            backgroundColor: null,
+            scale: 2,
+            useCORS: true,
+            allowTaint: true,
+        });
+        buttons.style.display = '';
+        // 다운로드
+        const link = document.createElement('a');
+        const now = new Date();
+        const dateStr = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
+        link.download = `daily-bet_${dateStr}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        toast('이미지 저장 완료!');
+    } catch(e) {
+        console.error('캡처 오류:', e);
+        toast('이미지 저장 실패');
+    } finally {
+        btn.textContent = origText;
+        btn.disabled = false;
+    }
+}
 
 // 다시하기: 결과 닫고 같은 게임 새로 시작
 document.getElementById('resultRetryBtn').addEventListener('click', () => {
@@ -493,11 +643,186 @@ document.getElementById('memberForm').addEventListener('submit', async (e) => {
 });
 
 async function removeMember(id, name) {
-    if (!confirm(`${name}을(를) 삭제하시겠습니까?`)) return;
+    if (!await customConfirm(`${name}을(를) 삭제하시겠습니까?`, { icon: '🗑️', okText: '삭제', danger: true })) return;
     try {
         await api(`/api/members/${id}`, { method: 'DELETE' });
         toast(`${name} 삭제 완료`);
         loadMembers();
+    } catch (err) { toast(err.message); }
+}
+
+// ── Groups ──
+let groupMembers = [];
+let allMembersList = [];
+let editingGroupId = null;
+let editingGroupName = '';
+
+function openGroupPopup() {
+    document.getElementById('groupName').value = '';
+    document.getElementById('groupOverlay').style.display = 'flex';
+    document.getElementById('groupListView').style.display = 'block';
+    document.getElementById('groupEditView').style.display = 'none';
+    document.getElementById('groupPopupTitle').textContent = '📁 그룹 관리';
+    loadGroups();
+}
+
+function closeGroupPopup() {
+    document.getElementById('groupOverlay').style.display = 'none';
+}
+
+function backToGroupList() {
+    document.getElementById('groupListView').style.display = 'block';
+    document.getElementById('groupEditView').style.display = 'none';
+    document.getElementById('groupPopupTitle').textContent = '📁 그룹 관리';
+    loadGroups();
+}
+
+async function createGroup() {
+    const nameInput = document.getElementById('groupName');
+    const name = nameInput.value.trim();
+    if (!name) { toast('그룹 이름을 입력하세요'); return; }
+    try {
+        const res = await api('/api/groups', { method: 'POST', body: JSON.stringify({ name, member_names: '' }) });
+        toast(res.message || '그룹 생성 완료');
+        nameInput.value = '';
+        loadGroups();
+        // 바로 편집 화면으로 이동
+        openGroupEdit(res.id, name);
+    } catch (err) { toast(err.message); }
+}
+
+async function openGroupEdit(id, name) {
+    editingGroupId = id;
+    editingGroupName = name;
+    groupMembers = [];
+
+    // 기존 멤버 불러오기
+    try {
+        const groups = await api('/api/groups');
+        const group = groups.find(g => g.id === id);
+        if (group && group.member_names) {
+            groupMembers = group.member_names.split(',').map(n => n.trim()).filter(n => n);
+        }
+    } catch (e) {}
+
+    // 검색용 전체 멤버 캐시
+    api('/api/members').then(data => { allMembersList = data; });
+
+    document.getElementById('groupListView').style.display = 'none';
+    document.getElementById('groupEditView').style.display = 'block';
+    document.getElementById('groupPopupTitle').textContent = `✏️ ${name}`;
+    renderGroupChips();
+
+    // 검색 이벤트
+    const searchInput = document.getElementById('groupMemberSearch');
+    searchInput.value = '';
+    searchInput.oninput = function() { renderSuggestions(this.value.trim()); };
+    searchInput.onkeydown = function(e) {
+        if (e.key === 'Enter') { e.preventDefault(); addGroupMember(); }
+    };
+}
+
+function renderGroupChips() {
+    const el = document.getElementById('groupSelectedMembers');
+    if (!groupMembers.length) {
+        el.innerHTML = '<span style="color:var(--gray-300);font-size:0.8rem;">멤버를 추가하세요</span>';
+        return;
+    }
+    el.innerHTML = groupMembers.map((name, i) =>
+        `<span class="group-chip">${esc(name)}<span class="remove" onclick="removeGroupMember(${i})">&times;</span></span>`
+    ).join('');
+}
+
+function renderSuggestions(query) {
+    const box = document.getElementById('groupSuggestBox');
+    if (!query) { box.style.display = 'none'; box.innerHTML = ''; return; }
+
+    const filtered = allMembersList
+        .filter(m => m.name.includes(query) && !groupMembers.includes(m.name))
+        .slice(0, 5);
+    if (!filtered.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
+
+    box.style.display = 'block';
+    box.innerHTML = filtered.map(m =>
+        `<div class="group-suggest-item" onclick="selectSuggestion('${esc(m.name)}')">${esc(m.name)}</div>`
+    ).join('');
+}
+
+function selectSuggestion(name) {
+    if (!groupMembers.includes(name)) {
+        groupMembers.push(name);
+        renderGroupChips();
+    }
+    document.getElementById('groupMemberSearch').value = '';
+    document.getElementById('groupSuggestBox').style.display = 'none';
+}
+
+function addGroupMember() {
+    const input = document.getElementById('groupMemberSearch');
+    const name = input.value.trim();
+    if (!name) return;
+    if (groupMembers.includes(name)) { toast('이미 추가된 멤버입니다'); return; }
+    groupMembers.push(name);
+    renderGroupChips();
+    input.value = '';
+    document.getElementById('groupSuggestBox').style.display = 'none';
+}
+
+function removeGroupMember(index) {
+    groupMembers.splice(index, 1);
+    renderGroupChips();
+}
+
+async function saveGroupMembers() {
+    if (!editingGroupId) return;
+    const memberNames = groupMembers.join(',');
+    try {
+        await api('/api/groups', { method: 'POST', body: JSON.stringify({ name: editingGroupName, member_names: memberNames }) });
+        toast('멤버 저장 완료');
+    } catch (err) { toast(err.message); }
+}
+
+async function loadGroups() {
+    try {
+        const data = await api('/api/groups');
+        const el = document.getElementById('groupList');
+        if (!data.length) {
+            el.innerHTML = '<div style="text-align:center;color:var(--gray-400);padding:16px;font-size:0.85rem;">저장된 그룹이 없습니다</div>';
+            return;
+        }
+        el.innerHTML = data.map(g => {
+            const names = g.member_names ? g.member_names.split(',').map(n => n.trim()).filter(n => n) : [];
+            return `
+                <div class="group-item">
+                    <div class="group-item-info" onclick="openGroupEdit(${g.id}, '${esc(g.name)}')" style="cursor:pointer;">
+                        <div class="group-item-name">${esc(g.name)} <span style="font-weight:400;color:var(--gray-400);font-size:0.75rem;">(${names.length}명)</span></div>
+                        <div class="group-item-members">${names.length ? names.map(n => esc(n)).join(', ') : '멤버 없음 - 클릭하여 추가'}</div>
+                    </div>
+                    <div class="group-item-actions">
+                        <button class="group-load-btn" onclick="loadGroup(${g.id}, '${esc(g.name)}')" ${!names.length ? 'disabled style="opacity:0.4;cursor:not-allowed;padding:6px 14px;border:none;border-radius:8px;background:var(--primary);color:#fff;font-size:0.78rem;font-weight:600;"' : ''}>불러오기</button>
+                        <button class="group-del-btn" onclick="deleteGroup(${g.id}, '${esc(g.name)}')">삭제</button>
+                    </div>
+                </div>`;
+        }).join('');
+    } catch (err) { console.error('그룹 로드 오류:', err); }
+}
+
+async function loadGroup(id, name) {
+    if (!await customConfirm(`'${name}' 그룹을 불러오시겠습니까?\n현재 멤버가 교체됩니다.`, { icon: '📁', okText: '불러오기' })) return;
+    try {
+        const res = await api(`/api/groups/${id}/load`, { method: 'POST' });
+        toast(res.message || '그룹 불러오기 완료');
+        loadMembers();
+        closeGroupPopup();
+    } catch (err) { toast(err.message); }
+}
+
+async function deleteGroup(id, name) {
+    if (!await customConfirm(`'${name}' 그룹을 삭제하시겠습니까?`, { icon: '🗑️', okText: '삭제', danger: true })) return;
+    try {
+        await api(`/api/groups/${id}`, { method: 'DELETE' });
+        toast('그룹 삭제 완료');
+        loadGroups();
     } catch (err) { toast(err.message); }
 }
 
@@ -654,7 +979,7 @@ async function loadHistory() {
 }
 
 async function deleteHistory(id) {
-    if (!confirm('이 기록을 삭제하시겠습니까?')) return;
+    if (!await customConfirm('이 기록을 삭제하시겠습니까?', { icon: '🗑️', okText: '삭제', danger: true })) return;
     try {
         await api(`/api/history/${id}`, { method: 'DELETE' });
         toast('삭제 완료');
@@ -663,8 +988,8 @@ async function deleteHistory(id) {
 }
 
 async function resetStats() {
-    if (!confirm('모든 추첨 기록과 통계를 삭제합니다. 정말 초기화하시겠습니까?')) return;
-    if (!confirm('되돌릴 수 없습니다. 정말로 삭제하시겠습니까?')) return;
+    if (!await customConfirm('모든 추첨 기록과 통계를 삭제합니다.\n정말 초기화하시겠습니까?', { icon: '⚠️', okText: '초기화', danger: true })) return;
+    if (!await customConfirm('되돌릴 수 없습니다.\n정말로 삭제하시겠습니까?', { icon: '🚨', okText: '삭제', danger: true })) return;
     try {
         await api('/api/stats/reset', { method: 'DELETE' });
         toast('통계가 초기화되었습니다');
@@ -732,29 +1057,29 @@ function playSound(type) {
             // 칼 베는 소리 (쉭~)
             osc.type = 'sawtooth';
             osc.frequency.setValueAtTime(2000, ctx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(200, ctx.currentTime + 0.2);
-            gain.gain.setValueAtTime(0.15, ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+            osc.frequency.exponentialRampToValueAtTime(200, ctx.currentTime + 0.25);
+            gain.gain.setValueAtTime(0.6, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
             osc.start();
-            osc.stop(ctx.currentTime + 0.25);
+            osc.stop(ctx.currentTime + 0.3);
         } else if (type === 'bat_hit') {
             // 방망이 타격 소리 (퍽!)
             osc.type = 'square';
             osc.frequency.setValueAtTime(300, ctx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(60, ctx.currentTime + 0.15);
-            gain.gain.setValueAtTime(0.25, ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+            osc.frequency.exponentialRampToValueAtTime(60, ctx.currentTime + 0.2);
+            gain.gain.setValueAtTime(0.7, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
             osc.start();
-            osc.stop(ctx.currentTime + 0.2);
+            osc.stop(ctx.currentTime + 0.25);
         } else if (type === 'explode') {
             // 폭탄 폭발 소리 (쾅!)
             osc.type = 'sawtooth';
             osc.frequency.setValueAtTime(400, ctx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(20, ctx.currentTime + 0.4);
-            gain.gain.setValueAtTime(0.3, ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+            osc.frequency.exponentialRampToValueAtTime(20, ctx.currentTime + 0.5);
+            gain.gain.setValueAtTime(0.8, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
             osc.start();
-            osc.stop(ctx.currentTime + 0.5);
+            osc.stop(ctx.currentTime + 0.6);
         }
     } catch (e) {}
 }

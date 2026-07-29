@@ -1145,6 +1145,24 @@ Games.pirate = function(container, players, onWin) {
 // ─────────────────────────────────────
 // 7. Racing Game (경마 레이스)
 // ─────────────────────────────────────
+let raceBgmAudio = null;
+function startRaceBgm() {
+    try {
+        if (raceBgmAudio) { raceBgmAudio.pause(); raceBgmAudio = null; }
+        raceBgmAudio = new Audio(BASE_PATH + '/static/race-bgm.mp3');
+        raceBgmAudio.loop = true;
+        raceBgmAudio.volume = 0.15;
+        raceBgmAudio.play().catch(() => {});
+    } catch(e) {}
+}
+function stopRaceBgm() {
+    if (raceBgmAudio) {
+        raceBgmAudio.pause();
+        raceBgmAudio.currentTime = 0;
+        raceBgmAudio = null;
+    }
+}
+
 Games.race = function(container, players, onWin) {
     const div = document.createElement('div');
     div.className = 'race-game';
@@ -1226,14 +1244,179 @@ Games.race = function(container, players, onWin) {
     const speedPenalty = new Array(racePlayers.length).fill(1); // 속도 감소 배율
     let tickCount = 0;
 
+    let winnerRank = racePlayers.length; // 기본값: 꼴찌
+
     startBtn.addEventListener('click', () => {
         startBtn.disabled = true;
-        startBtn.textContent = '경주 중...';
-        if (typeof startRaceBgm === 'function') startRaceBgm();
+        startBtn.textContent = '준비...';
+        div.style.position = 'relative';
 
+        // 비프음 생성 (Web Audio API)
+        let beepCtx = null;
+        try { beepCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
+
+        function playBeep(freq, duration) {
+            if (!beepCtx) return;
+            try {
+                if (beepCtx.state === 'suspended') beepCtx.resume();
+                const osc = beepCtx.createOscillator();
+                const gain = beepCtx.createGain();
+                osc.connect(gain);
+                gain.connect(beepCtx.destination);
+                osc.frequency.value = freq;
+                osc.type = 'triangle';
+                gain.gain.setValueAtTime(0.5, beepCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0, beepCtx.currentTime + duration);
+                osc.start(beepCtx.currentTime);
+                osc.stop(beepCtx.currentTime + duration + 0.05);
+            } catch(e) {}
+        }
+
+
+        // ── 슬롯 머신: 당첨 순위 결정 ──
+        const slotOverlay = document.createElement('div');
+        slotOverlay.style.cssText = 'position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;background:rgba(0,0,0,0.7);border-radius:12px;';
+        slotOverlay.innerHTML = `
+            <div style="font-size:0.9rem;color:#aaa;margin-bottom:8px;">🎰 당첨 순위 결정 중...</div>
+            <div style="background:#222;border-radius:16px;padding:16px 40px;border:3px solid #fbbf24;box-shadow:0 0 30px rgba(251,191,36,0.3);">
+                <div id="slotNumber" style="font-size:5rem;font-weight:900;color:#fbbf24;text-align:center;min-width:80px;text-shadow:0 0 20px rgba(251,191,36,0.5);">1</div>
+            </div>
+            <div id="slotResult" style="font-size:1.2rem;font-weight:700;color:#fff;margin-top:12px;opacity:0;"></div>
+        `;
+        div.appendChild(slotOverlay);
+
+        const slotNum = document.getElementById('slotNumber');
+        const slotResult = document.getElementById('slotResult');
+        const totalPlayers = racePlayers.length;
+        winnerRank = 1 + Math.floor(Math.random() * totalPlayers); // 1~N위
+
+        let slotTick = 0;
+        const slotTotal = 20 + Math.floor(Math.random() * 10); // 20~30회 돌림
+        let slotSpeed = 50;
+
+        const slotInterval = setInterval(() => {
+            slotTick++;
+            const displayNum = ((slotTick - 1) % totalPlayers) + 1;
+            slotNum.textContent = displayNum;
+            playBeep(300 + displayNum * 80, 0.05);
+
+            // 점점 느려지기
+            if (slotTick > slotTotal - 8) slotSpeed = 150;
+            if (slotTick > slotTotal - 4) slotSpeed = 250;
+            if (slotTick > slotTotal - 2) slotSpeed = 400;
+
+            if (slotTick >= slotTotal) {
+                clearInterval(slotInterval);
+                slotNum.textContent = winnerRank;
+                slotNum.style.animation = 'countPop 0.5s ease';
+                playBeep(880, 0.3);
+                setTimeout(() => playBeep(1100, 0.4), 150);
+
+                const rankLabel = winnerRank === totalPlayers ? '꼴찌' : winnerRank + '위';
+                slotResult.textContent = `🎯 ${rankLabel} 당첨!`;
+                slotResult.style.opacity = '1';
+                slotResult.style.animation = 'countPop 0.5s ease';
+
+                // 1.5초 후 카운트다운 시작
+                setTimeout(() => {
+                    slotOverlay.remove();
+                    startCountdown();
+                }, 1800);
+            }
+        }, slotSpeed);
+
+        // 슬롯 속도 변경을 위해 재귀 setTimeout 사용
+        let slotTick2 = 0;
+        clearInterval(slotInterval); // 위의 setInterval 취소
+        function runSlot() {
+            slotTick2++;
+            const displayNum = ((slotTick2 - 1) % totalPlayers) + 1;
+            slotNum.textContent = displayNum;
+            playBeep(300 + displayNum * 80, 0.05);
+
+            let delay = 60;
+            if (slotTick2 > slotTotal - 10) delay = 120;
+            if (slotTick2 > slotTotal - 6) delay = 200;
+            if (slotTick2 > slotTotal - 3) delay = 350;
+            if (slotTick2 > slotTotal - 1) delay = 500;
+
+            if (slotTick2 >= slotTotal) {
+                slotNum.textContent = winnerRank;
+                slotNum.style.animation = 'countPop 0.5s ease';
+                playBeep(880, 0.3);
+                setTimeout(() => playBeep(1100, 0.4), 150);
+
+                const rankLabel = winnerRank === totalPlayers ? '꼴찌' : winnerRank + '위';
+                slotResult.textContent = `🎯 ${rankLabel} 당첨!`;
+                slotResult.style.opacity = '1';
+                slotResult.style.animation = 'countPop 0.5s ease';
+
+                setTimeout(() => {
+                    slotOverlay.remove();
+                    // 상단에 당첨 순위 배너 표시
+                    const banner = document.createElement('div');
+                    banner.style.cssText = 'text-align:center;padding:8px 12px;margin-bottom:8px;border-radius:10px;background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#7c2d12;font-weight:800;font-size:1rem;animation:countPop 0.4s ease;';
+                    banner.textContent = `🎯 ${rankLabel} 도착 = 당첨!`;
+                    div.insertBefore(banner, div.firstChild);
+                    startCountdown();
+                }, 1800);
+                return;
+            }
+            setTimeout(runSlot, delay);
+        }
+        runSlot();
+
+        // ── 카운트다운 ──
+        function startCountdown() {
+            // 카운트다운 시작 시 BGM 시작 (볼륨 낮게)
+            if (typeof startRaceBgm === 'function') startRaceBgm();
+            if (raceBgmAudio) raceBgmAudio.volume = 0.1;
+
+            const countdownEl = document.createElement('div');
+            countdownEl.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:100;background:rgba(0,0,0,0.5);border-radius:12px;';
+            countdownEl.innerHTML = '<div style="font-size:5rem;font-weight:900;color:#fff;text-shadow:0 4px 20px rgba(0,0,0,0.5);animation:countPop 0.5s ease;"></div>';
+            div.appendChild(countdownEl);
+            const countText = countdownEl.querySelector('div');
+
+            let count = 3;
+            countText.textContent = count;
+            playBeep(600, 0.3);
+
+            const countInterval = setInterval(() => {
+                count--;
+                if (count > 0) {
+                    countText.textContent = count;
+                    countText.style.animation = 'none';
+                    void countText.offsetWidth;
+                    countText.style.animation = 'countPop 0.5s ease';
+                    playBeep(600, 0.3);
+                } else if (count === 0) {
+                    countText.textContent = 'GO!';
+                    countText.style.color = '#fbbf24';
+                    countText.style.fontSize = '4rem';
+                    countText.style.animation = 'none';
+                    void countText.offsetWidth;
+                    countText.style.animation = 'countPop 0.5s ease';
+                    playBeep(900, 0.2);
+                    setTimeout(() => playBeep(1200, 0.4), 180);
+                    if (raceBgmAudio) raceBgmAudio.volume = 0.4;
+                } else {
+                    clearInterval(countInterval);
+                    countdownEl.remove();
+                    startBtn.textContent = '경주 중...';
+                    beginRace();
+                }
+            }, 800);
+        }
+
+        function beginRace() {
         const finishedPlayers = [];
         const tripped = new Set();
         const flyingObjects = []; // 날아가는 칼/방망이 실시간 추적
+
+        // 속도 설정 적용
+        const speedSettings = { slow: { mult: 0.5, tick: 100 }, normal: { mult: 1, tick: 80 }, fast: { mult: 1.8, tick: 60 } };
+        const spd = speedSettings[window.raceSpeed] || speedSettings.normal;
 
         const interval = setInterval(() => {
             tickCount++;
@@ -1368,7 +1551,7 @@ Games.race = function(container, players, onWin) {
                     continue;
                 }
 
-                let speed = Math.random() * 3 * speedPenalty[i]; // 칼 맞으면 느려짐
+                let speed = Math.random() * 3 * speedPenalty[i] * spd.mult; // 칼 맞으면 느려짐, 속도 설정 적용
 
                 // Boost zone
                 const posPct = positions[i] / maxPos;
@@ -1402,46 +1585,80 @@ Games.race = function(container, players, onWin) {
                 if (positions[i] >= maxPos && !finishedPlayers.includes(i)) {
                     finishedPlayers.push(i);
 
-                    // 꼴찌가 당첨! (마지막 한 명 남으면 종료)
+                    // 도착 즉시 레인 오른쪽에 순위 표시
+                    const rank = finishedPlayers.length;
+                    const lane = div.querySelectorAll('.race-lane')[i];
+                    if (lane) {
+                        const badge = document.createElement('div');
+                        const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank + '위';
+                        const isTargetRank = rank === winnerRank;
+                        badge.style.cssText = `position:absolute;right:4px;top:50%;transform:translateY(-50%);font-size:${isTargetRank ? '1.8rem' : '1.4rem'};font-weight:900;z-index:5;${isTargetRank ? 'color:#DC2626;text-shadow:0 0 8px rgba(220,38,38,0.5);' : 'color:#374151;'}animation:countPop 0.3s ease;`;
+                        badge.textContent = isTargetRank ? '💀' + medal : medal;
+                        lane.style.position = 'relative';
+                        lane.appendChild(badge);
+                    }
+
+                    // 모든 선수 도착 시 종료 (마지막 한 명 남으면 종료)
                     if (finishedPlayers.length === racePlayers.length - 1) {
                         clearInterval(interval);
                         if (typeof stopRaceBgm === 'function') stopRaceBgm();
                         const lastIdx = racePlayers.findIndex((_, idx) => !finishedPlayers.includes(idx));
                         finishedPlayers.push(lastIdx);
-                        const lastRunner = document.getElementById(`runner${lastIdx}`);
-                        lastRunner.style.fontSize = '2.2rem';
+
+                        // 꼴찌 레인에도 순위 뱃지
+                        const lastRank = racePlayers.length;
+                        const lastLane = div.querySelectorAll('.race-lane')[lastIdx];
+                        if (lastLane) {
+                            const lastBadge = document.createElement('div');
+                            const isTargetLast = lastRank === winnerRank;
+                            lastBadge.style.cssText = `position:absolute;right:4px;top:50%;transform:translateY(-50%);font-size:${isTargetLast ? '1.8rem' : '1.4rem'};font-weight:900;z-index:5;${isTargetLast ? 'color:#DC2626;text-shadow:0 0 8px rgba(220,38,38,0.5);' : 'color:#374151;'}animation:countPop 0.3s ease;`;
+                            lastBadge.textContent = isTargetLast ? '💀' + lastRank + '위' : lastRank + '위';
+                            lastLane.style.position = 'relative';
+                            lastLane.appendChild(lastBadge);
+                        }
+
+                        // winnerRank 순위에 해당하는 사람이 당첨 (1-based)
+                        const winnerIdx = finishedPlayers[winnerRank - 1];
+                        const winnerRunner = document.getElementById(`runner${winnerIdx}`);
+                        if (winnerRunner) winnerRunner.style.fontSize = '2.2rem';
                         playSound('win');
 
                         // 순위 표시
                         const rankingEl = document.getElementById('raceRanking');
-                        let rankHTML = '<div style="font-weight:700;font-size:1.1rem;margin-bottom:10px;color:#333;">🏁 최종 순위</div>';
+                        const rankLabel = winnerRank === racePlayers.length ? '꼴찌' : winnerRank + '위';
+                        let rankHTML = `<div style="font-weight:700;font-size:1.1rem;margin-bottom:10px;color:#333;">🏁 최종 순위 (🎯 ${rankLabel} 당첨)</div>`;
                         finishedPlayers.forEach((idx, rank) => {
                             const medal = rank === 0 ? '🥇' : rank === 1 ? '🥈' : rank === 2 ? '🥉' : `${rank+1}위`;
-                            const isLast = rank === finishedPlayers.length - 1;
-                            rankHTML += `<div style="padding:6px 12px;margin:4px 0;border-radius:8px;font-size:0.95rem;display:flex;align-items:center;gap:8px;${isLast?'background:#FEE2E2;color:#DC2626;font-weight:700;':'background:#F3F4F6;color:#374151;'}">
-                                <span style="min-width:32px;">${isLast?'💀':medal}</span>
+                            const isWinner = rank === winnerRank - 1;
+                            rankHTML += `<div style="padding:6px 12px;margin:4px 0;border-radius:8px;font-size:0.95rem;display:flex;align-items:center;gap:8px;${isWinner?'background:#FEE2E2;color:#DC2626;font-weight:700;':'background:#F3F4F6;color:#374151;'}">
+                                <span style="min-width:32px;">${isWinner?'💀':medal}</span>
                                 <span>${icons[idx % icons.length]} ${esc(racePlayers[idx])}</span>
-                                ${isLast?'<span style="margin-left:auto;font-size:0.8rem;">← 당첨!</span>':''}
+                                ${isWinner?'<span style="margin-left:auto;font-size:0.8rem;">← 당첨!</span>':''}
                             </div>`;
                         });
                         rankingEl.innerHTML = rankHTML;
                         rankingEl.style.display = 'block';
 
-                        // 경주 중 버튼 → 다시하기 버튼으로 변경
+                        // 기존 출발 버튼 제거
+                        startBtn.remove();
+
+                        // 순위 아래에 다시하기 버튼 추가
                         const retryBtn = document.createElement('button');
                         retryBtn.className = 'race-start-btn';
+                        retryBtn.style.marginTop = '12px';
                         retryBtn.textContent = '🔄 다시하기';
                         retryBtn.addEventListener('click', () => {
                             container.innerHTML = '';
                             Games.race(container, players, onWin);
                         });
-                        startBtn.replaceWith(retryBtn);
+                        rankingEl.appendChild(retryBtn);
 
-                        setTimeout(() => onWin(racePlayers[lastIdx]), 2500);
+                        setTimeout(() => onWin(racePlayers[winnerIdx]), 2500);
                     }
                 }
             }
-        }, 80);
+        }, spd.tick);
+        } // end beginRace
     });
 };
 
